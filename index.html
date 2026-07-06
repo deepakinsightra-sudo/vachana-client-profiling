@@ -374,13 +374,13 @@
     }
   }
 
- async function postToAppsScript(record){
+async function postToAppsScript(record){
   try {
     console.log('Sending data:', record);
     
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      mode: 'cors', // Change this back to 'cors'
+      mode: 'cors', // USE 'cors' since you added CORS headers
       headers: { 
         'Content-Type': 'application/json'
       },
