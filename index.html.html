@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vachana Investments — Client Profiling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B1F3A;
+    --ivory:#F7F4EE;
+    --brass:#B08D57;
+    --emerald:#1F4B3F;
+    --slate:#5B6472;
+    --white:#FFFFFF;
+    --danger:#9E4B3E;
+    --line: rgba(11,31,58,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ivory);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:920px; margin:0 auto; padding:0 20px 60px; }
+
+  .ticker{
+    background:var(--ink); color:var(--ivory); overflow:hidden; white-space:nowrap;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.08em; padding:6px 0;
+  }
+  .ticker span{ display:inline-block; padding-right:60px; opacity:0.75; }
+  .ticker strong{color:var(--brass); opacity:1;}
+
+  header.brand{
+    padding:36px 20px 20px; max-width:920px; margin:0 auto;
+    display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .brand h1{ font-family:'Fraunces',serif; font-weight:600; font-size:32px; margin:0 0 4px; letter-spacing:-0.01em; }
+  .brand p{ margin:0; color:var(--slate); font-size:14px; max-width:480px; line-height:1.5; }
+  .admin-btn{
+    background:transparent; border:1px solid var(--line); color:var(--slate);
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.05em;
+    padding:8px 14px; border-radius:3px; cursor:pointer; white-space:nowrap;
+  }
+  .admin-btn:hover{border-color:var(--brass); color:var(--brass);}
+
+  .ledger{ display:flex; align-items:center; gap:0; margin:0 0 28px; padding:0; }
+  .ledger-seg{ flex:1; position:relative; }
+  .ledger-label{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--slate); margin-bottom:8px; display:flex; justify-content:space-between;
+  }
+  .ledger-label .status{color:var(--brass);}
+  .ledger-track{
+    height:6px; background:repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 9px);
+    border-radius:3px; position:relative; overflow:hidden;
+  }
+  .ledger-fill{ height:100%; width:0%; background:var(--emerald); border-radius:3px; transition:width 0.5s cubic-bezier(.4,0,.2,1); }
+  .ledger-seg.active .ledger-fill{background:var(--brass);}
+  .ledger-seg + .ledger-seg{margin-left:20px;}
+
+  .card{ background:var(--white); border:1px solid var(--line); border-radius:6px; padding:36px 40px; }
+  @media (max-width:600px){ .card{padding:26px 20px;} }
+
+  .step-title{ font-family:'Fraunces',serif; font-size:22px; font-weight:600; margin:0 0 6px; }
+  .step-sub{ color:var(--slate); font-size:13px; margin:0 0 28px; }
+
+  .field{margin-bottom:24px;}
+  .field label.q{ display:block; font-weight:600; font-size:14.5px; margin-bottom:4px; }
+  .field label.q .req{color:var(--danger); margin-left:3px;}
+  .field .hint{ font-size:12.5px; color:var(--slate); margin:0 0 10px; line-height:1.5; }
+  input[type=text], input[type=tel], input[type=email], input[type=date], textarea{
+    width:100%; border:none; border-bottom:1px solid var(--line); padding:9px 2px;
+    font-family:'Inter',sans-serif; font-size:14.5px; color:var(--ink); background:transparent;
+    outline:none; transition:border-color 0.2s;
+  }
+  input:focus, textarea:focus{border-bottom:2px solid var(--emerald); padding-bottom:8px;}
+  textarea{resize:vertical; min-height:44px; line-height:1.5;}
+
+  .options{display:flex; flex-direction:column; gap:2px;}
+  .opt{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:4px; cursor:pointer; border:1px solid transparent; }
+  .opt:hover{background:var(--ivory);}
+  .opt input{accent-color:var(--emerald); width:16px; height:16px; flex-shrink:0;}
+  .opt span{font-size:14px;}
+  .opt.selected{background:#EFF4F1; border-color:var(--emerald);}
+
+  .error{color:var(--danger); font-size:12px; margin-top:6px; display:none;}
+  .field.invalid input, .field.invalid textarea{border-bottom-color:var(--danger);}
+  .field.invalid .error{display:block;}
+  .field.invalid .options .opt{border-color:var(--danger);}
+
+  .nav-row{ display:flex; justify-content:space-between; margin-top:36px; padding-top:24px; border-top:1px solid var(--line); }
+  button.btn{ font-family:'Inter',sans-serif; font-weight:600; font-size:14px; padding:12px 26px; border-radius:4px; cursor:pointer; border:none; }
+  button.btn.primary{background:var(--ink); color:var(--ivory);}
+  button.btn.primary:hover{background:var(--emerald);}
+  button.btn.ghost{background:transparent; color:var(--slate); border:1px solid var(--line);}
+  button.btn.ghost:hover{border-color:var(--ink); color:var(--ink);}
+  button.btn:disabled{opacity:0.5; cursor:default;}
+  button.btn.small{padding:7px 14px; font-size:12.5px;}
+
+  .success{ text-align:center; padding:40px 10px; }
+  .success .mark{ width:56px; height:56px; border-radius:50%; background:var(--emerald); color:var(--ivory);
+    display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 20px; }
+  .success h2{font-family:'Fraunces',serif; font-size:24px; margin:0 0 8px;}
+  .success p{color:var(--slate); font-size:14px; max-width:440px; margin:0 auto;}
+  .success .ref{ font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--brass); margin-top:18px;
+    background:var(--ivory); display:inline-block; padding:8px 16px; border-radius:4px; }
+  .success .continue{margin-top:26px;}
+
+  .badge{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.04em; text-transform:uppercase;
+    padding:3px 8px; border-radius:10px; display:inline-block;
+  }
+  .badge.pending{background:#F3E7D6; color:#8A5A22;}
+
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(11,31,58,0.55); display:none;
+    align-items:flex-start; justify-content:center; padding:40px 16px; z-index:50; overflow-y:auto;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{ background:var(--white); border-radius:6px; max-width:640px; width:100%; padding:28px 30px; max-height:88vh; overflow-y:auto; }
+  .modal h3{font-family:'Fraunces',serif; margin:0 0 4px;}
+  .modal .modal-sub{color:var(--slate); font-size:12.5px; margin:0 0 18px; line-height:1.6;}
+  .modal-close{float:right; background:none; border:none; font-size:20px; cursor:pointer; color:var(--slate);}
+  .settings-row{margin-bottom:16px;}
+  .settings-row label{display:block; font-size:12.5px; font-weight:600; margin-bottom:6px;}
+  .settings-row input{
+    width:100%; border:1px solid var(--line); border-radius:4px; padding:9px 12px; font-size:12.5px;
+    font-family:'IBM Plex Mono',monospace; background:var(--ivory); color:var(--slate);
+  }
+  .settings-msg{font-size:12.5px; margin-top:10px;}
+  .status-line{
+    display:flex; align-items:center; gap:8px; font-size:13px; color:var(--slate); margin-bottom:18px;
+  }
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--emerald); display:inline-block;}
+</style>
+</head>
+<body>
+
+<div class="ticker" id="tickerBar">
+  <span>VACHANA INVESTMENTS</span>
+  <span><strong>CONFIDENTIALITY</strong> · INTEGRITY · PRECISION</span>
+  <span>CLIENT PROFILING FORM — FOR INTERNAL USE ONLY</span>
+  <span>VACHANA INVESTMENTS</span>
+  <span><strong>CONFIDENTIALITY</strong> · INTEGRITY · PRECISION</span>
+  <span>CLIENT PROFILING FORM — FOR INTERNAL USE ONLY</span>
+</div>
+
+<header class="brand">
+  <div>
+    <h1>Client Profiling</h1>
+    <p>Your privacy matters to us. Everything you share stays strictly confidential and is used only to understand your financial goals and journey, so we can serve you better.</p>
+  </div>
+  <button class="admin-btn" onclick="openAdmin()">Advisor panel</button>
+</header>
+
+<div class="wrap">
+
+  <div class="ledger">
+    <div class="ledger-seg" id="seg1">
+      <div class="ledger-label"><span>Section 1 — About you</span><span class="status" id="seg1status"></span></div>
+      <div class="ledger-track"><div class="ledger-fill" id="fill1"></div></div>
+    </div>
+    <div class="ledger-seg" id="seg2">
+      <div class="ledger-label"><span>Section 2 — Financial profile</span><span class="status" id="seg2status"></span></div>
+      <div class="ledger-track"><div class="ledger-fill" id="fill2"></div></div>
+    </div>
+  </div>
+
+  <div class="card" id="formCard"></div>
+
+</div>
+
+<div class="modal-backdrop" id="adminModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAdmin()">&times;</button>
+    <h3>Advisor panel</h3>
+    <p class="modal-sub">Every submission is sent straight to your Google Sheet. Open the sheet directly to review leads, mark them approved, and follow up.</p>
+    <div class="status-line"><span class="dot"></span>Connected to your Apps Script Web App</div>
+    <div class="settings-row">
+      <label>Apps Script Web App URL</label>
+      <input type="text" readonly value="https://script.google.com/macros/s/AKfycbx1II8yvw5ktd5r1Jv4wQmWXhx0B_hS6WaNQaAgL-7O0qTsEODfKOZnjO31BKe133-vug/exec">
+    </div>
+    <button class="btn primary small" onclick="sendTestRow()">Send test row</button>
+    <div class="settings-msg" id="adminMsg"></div>
+  </div>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx1II8yvw5ktd5r1Jv4wQmWXhx0B_hS6WaNQaAgL-7O0qTsEODfKOZnjO31BKe133-vug/exec';
+
+const FIELDS = [
+  {id:'name', type:'text', q:'Your Name', required:true},
+  {id:'phone', type:'tel', q:'Phone Number', required:true},
+  {id:'email', type:'email', q:'Email Address', required:true},
+  {id:'place', type:'textarea', q:'Place', required:true},
+  {id:'occupation', type:'textarea', q:'What is your occupation? Explain in detail', required:true},
+  {id:'demat', type:'radio', q:'Do you have a Demat & Trading account?', required:true, options:['Yes','No']},
+  {id:'broker', type:'text', q:'If Yes, name of your primary stock broker?', required:false, showIf:{field:'demat', equals:'Yes'}},
+  {id:'investSize', type:'radio', q:'Typical Investment Size you want to Start With', required:false,
+    options:['Upto 2 Lakh (Prefer Mutual Fund)','2 Lakh to 10 Lakh','10 Lakh to 25 Lakh','25 Lakh – 1 Crore','1 Crore & Above (WMS)']},
+
+  {id:'dob', type:'date', q:'Date of Birth', required:true},
+  {id:'monthlyIncome', type:'radio', q:'What is your monthly income?', required:true,
+    options:['₹0 to ₹50,000','₹50,000 to ₹1,00,000','₹1,00,000 to ₹5,00,000','₹5 Lakh & Above']},
+  {id:'netWorth', type:'radio', q:'What is your net worth as on today? (Market value of all assets − liabilities)', required:true,
+    options:['₹0 to ₹50 Lakhs','₹50 Lakhs to ₹5 Crore','₹5 Crore to ₹10 Crore','Above ₹10 Crore']},
+  {id:'experience', type:'radio', q:'How many years of experience do you have in the stock market?', required:true,
+    options:['0 to 3 Years','3 to 5 Years','5 to 10 Years','Above 10 Years']},
+  {id:'wantTrade', type:'radio', q:'Do you want to trade?', hint:'Trade only with money you can afford to lose. You can lose some, most, or even all of your money.', required:true, options:['Yes','No']},
+  {id:'riskTolerance', type:'radio', q:'What is your Risk Tolerance and Return Expectation (per annum)?', required:true,
+    options:['Low (loss of 20%)','Medium (20–40%)','High (above 40%)']},
+  {id:'planDuration', type:'radio', q:'Future Investment plan duration', required:true,
+    options:['1 – 3 Years','3 – 5 Years','5 – 10 Years','Above 10 Years']},
+  {id:'researchType', type:'radio', q:'What type of Research calls do you need?', required:true,
+    options:['Equity Delivery','Futures and Options','Intraday','Long Term Investment']},
+  {id:'shortTermGoals', type:'textarea', q:'What are your short term (within the next one year) financial goals?', required:true},
+  {id:'mediumTermGoals', type:'textarea', q:'What are your medium term (between 1 year and 5 years) financial goals?', required:true},
+  {id:'longTermGoals', type:'textarea', q:'What are your long term (above 5 years) financial goals?', required:true},
+  {id:'priority', type:'radio', q:'What is your Number 1 Priority for opening an account with Vachana Investments?', required:true,
+    options:['Research','Low Brokerage','Technology','Service']},
+  {id:'orderPreference', type:'radio', q:'How do you usually place orders, or what do you prefer?', required:true,
+    options:['Mobile App','Through Dealer']},
+  {id:'servicesExpected', type:'textarea', q:'What services do you expect from us, and how can we serve you better?', required:true},
+];
+const STEP_FIELDS = {
+  1: ['name','phone','email','place','occupation','demat','broker','investSize'],
+  2: ['dob','monthlyIncome','netWorth','experience','wantTrade','riskTolerance','planDuration',
+      'researchType','shortTermGoals','mediumTermGoals','longTermGoals','priority','orderPreference','servicesExpected']
+};
+
+const state = { view:'form1', data:{}, currentRef:null, submitting:false };
+
+function fieldDef(id){ return FIELDS.find(f => f.id === id); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function generateRef(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  const seq = String(Math.floor(Math.random()*9999)+1).padStart(4,'0');
+  return `VI-${y}${m}${day}-${seq}`;
+}
+
+function renderField(f){
+  const invalidClass = f._invalid ? 'invalid' : '';
+  let inner = '';
+  if(f.type === 'text' || f.type === 'tel' || f.type === 'email' || f.type === 'date'){
+    inner = `<input type="${f.type}" id="input_${f.id}" value="${(state.data[f.id]||'').replace(/"/g,'&quot;')}" oninput="onInput('${f.id}', this.value)">`;
+  } else if(f.type === 'textarea'){
+    inner = `<textarea id="input_${f.id}" oninput="onInput('${f.id}', this.value)">${state.data[f.id]||''}</textarea>`;
+  } else if(f.type === 'radio'){
+    inner = '<div class="options">' + f.options.map(opt => {
+      const checked = state.data[f.id] === opt ? 'checked' : '';
+      const sel = state.data[f.id] === opt ? 'selected' : '';
+      return `<label class="opt ${sel}"><input type="radio" name="${f.id}" value="${opt}" ${checked} onchange="onInput('${f.id}', this.value)"><span>${opt}</span></label>`;
+    }).join('') + '</div>';
+  }
+  return `
+    <div class="field ${invalidClass}" id="field_${f.id}">
+      <label class="q">${f.q}${f.required ? '<span class="req">*</span>' : ''}</label>
+      ${f.hint ? `<p class="hint">${f.hint}</p>` : ''}
+      ${inner}
+      <div class="error">This field is required.</div>
+    </div>
+  `;
+}
+
+function onInput(id, value){
+  state.data[id] = value;
+  const fEl = document.getElementById('field_'+id);
+  if(fEl) fEl.classList.remove('invalid');
+  if(FIELDS.filter(f => f.showIf && f.showIf.field === id).length || fieldDef(id).type === 'radio') render();
+  else updateLedger();
+}
+
+function visibleFieldsFor(step){
+  return STEP_FIELDS[step].map(fieldDef).filter(f => !f.showIf || state.data[f.showIf.field] === f.showIf.equals);
+}
+
+function validateStep(step){
+  let ok = true;
+  visibleFieldsFor(step).forEach(f => {
+    const el = document.getElementById('field_'+f.id);
+    const val = state.data[f.id];
+    const isEmpty = !val || String(val).trim() === '';
+    if(f.required && isEmpty){ ok = false; el.classList.add('invalid'); }
+    else el.classList.remove('invalid');
+  });
+  return ok;
+}
+
+function render(){
+  const card = document.getElementById('formCard');
+
+  if(state.view === 'form1'){
+    card.innerHTML = `
+      <h2 class="step-title">Section 1 — About you</h2>
+      <p class="step-sub">Basic details so we can identify you and reach out.</p>
+      ${visibleFieldsFor(1).map(renderField).join('')}
+      <div class="nav-row">
+        <span></span>
+        <button class="btn primary" id="step1SubmitBtn" onclick="submitStep1()">Submit for review</button>
+      </div>
+    `;
+  }
+
+  else if(state.view === 'thankyou1'){
+    card.innerHTML = `
+      <div class="success">
+        <div class="mark">✓</div>
+        <h2>Thank you, ${escapeHtml(state.data.name || 'there')}.</h2>
+        <p>Your details have been submitted. <span class="badge pending">Status: Pending</span> — our advisor team will review them shortly.</p>
+        <div class="ref">Reference: ${state.currentRef}</div>
+        <div class="continue">
+          <button class="btn primary" onclick="state.view='form2'; render();">Continue to Section 2 — Financial profile</button>
+        </div>
+      </div>
+    `;
+  }
+
+  else if(state.view === 'form2'){
+    card.innerHTML = `
+      <h2 class="step-title">Section 2 — Financial profile</h2>
+      <p class="step-sub">This helps us tailor research, risk approach and service to your situation.</p>
+      ${visibleFieldsFor(2).map(renderField).join('')}
+      <div class="nav-row">
+        <span></span>
+        <button class="btn primary" id="step2SubmitBtn" onclick="submitStep2()">Submit</button>
+      </div>
+    `;
+  }
+
+  else if(state.view === 'done'){
+    card.innerHTML = `
+      <div class="success">
+        <div class="mark">✓</div>
+        <h2>Thank you, ${escapeHtml(state.data.name || 'valued client')}.</h2>
+        <p>Your full profile has been recorded confidentially. Our team will review your goals and reach out to discuss next steps.</p>
+        <div class="ref">REF: ${state.currentRef}</div>
+      </div>
+    `;
+  }
+
+  updateLedger();
+}
+
+function updateLedger(){
+  const view = state.view;
+  const set = (seg, pct, label, active) => {
+    document.getElementById('fill'+seg).style.width = pct + '%';
+    document.getElementById('seg'+seg+'status').textContent = label;
+    document.getElementById('seg'+seg).classList.toggle('active', active);
+  };
+  if(view === 'form1'){
+    const req = visibleFieldsFor(1).filter(f=>f.required);
+    const filled = req.filter(f => state.data[f.id] && String(state.data[f.id]).trim() !== '');
+    const pct = req.length ? Math.round(filled.length/req.length*100) : 0;
+    set(1, pct, pct+'%', true); set(2, 0, 'Not started', false);
+  } else if(view === 'thankyou1'){
+    set(1, 100, 'Submitted', false); set(2, 0, 'Not started', false);
+  } else if(view === 'form2'){
+    const req = visibleFieldsFor(2).filter(f=>f.required);
+    const filled = req.filter(f => state.data[f.id] && String(state.data[f.id]).trim() !== '');
+    const pct = req.length ? Math.round(filled.length/req.length*100) : 0;
+    set(1, 100, 'Submitted', false); set(2, pct, pct+'%', true);
+  } else if(view === 'done'){
+    set(1, 100, 'Submitted', false); set(2, 100, 'Complete', false);
+  }
+}
+
+async function postToAppsScript(record){
+  return fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(record)
+  });
+}
+
+async function submitStep1(){
+  if(!validateStep(1)) return;
+  const btn = document.getElementById('step1SubmitBtn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+
+  const ref = generateRef();
+  state.currentRef = ref;
+  const record = { ref, status:'Pending', submittedAt: new Date().toISOString() };
+  FIELDS.forEach(f => { if(state.data[f.id] !== undefined) record[f.id] = state.data[f.id]; });
+
+  try{
+    await postToAppsScript(record);
+    state.view = 'thankyou1';
+    render();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }catch(e){
+    console.error('Submission failed', e);
+    btn.disabled = false; btn.textContent = 'Submit for review';
+    alert('Something went wrong sending your details. Please check your connection and try again.');
+  }
+}
+
+async function submitStep2(){
+  if(!validateStep(2)) return;
+  const btn = document.getElementById('step2SubmitBtn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+
+  const record = { ref: state.currentRef, status:'Completed', submittedAt2: new Date().toISOString() };
+  FIELDS.forEach(f => { if(state.data[f.id] !== undefined) record[f.id] = state.data[f.id]; });
+
+  try{
+    await postToAppsScript(record);
+    state.view = 'done';
+    render();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }catch(e){
+    console.error('Submission failed', e);
+    btn.disabled = false; btn.textContent = 'Submit';
+    alert('Something went wrong sending your details. Please check your connection and try again.');
+  }
+}
+
+function openAdmin(){ document.getElementById('adminModal').classList.add('open'); }
+function closeAdmin(){ document.getElementById('adminModal').classList.remove('open'); }
+
+async function sendTestRow(){
+  const msg = document.getElementById('adminMsg');
+  msg.textContent = 'Sending test row…';
+  msg.style.color = 'var(--brass)';
+  try{
+    await postToAppsScript({ ref:'TEST-0000', status:'Test', name:'Test Row', submittedAt:new Date().toISOString() });
+    msg.textContent = 'Test row sent. Check your Google Sheet to confirm it arrived.';
+    msg.style.color = 'var(--emerald)';
+  }catch(e){
+    msg.textContent = 'Could not reach the Apps Script URL.';
+    msg.style.color = 'var(--danger)';
+  }
+}
+
+render();
+</script>
+</body>
+</html>
