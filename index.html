@@ -193,256 +193,308 @@
 <script>
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZ2m3_kP_acyefr3iEkNy4kroMBAkgglvR1p6LXsaCjfBfIxkjErRpQYqOKGY2-PSz7Q/exec';
 
-const FIELDS = [
-  {id:'name', type:'text', q:'Your Name', required:true},
-  {id:'phone', type:'tel', q:'Phone Number', required:true},
-  {id:'email', type:'email', q:'Email Address', required:true},
-  {id:'place', type:'textarea', q:'Place', required:true},
-  {id:'occupation', type:'textarea', q:'What is your occupation? Explain in detail', required:true},
-  {id:'demat', type:'radio', q:'Do you have a Demat & Trading account?', required:true, options:['Yes','No']},
-  {id:'broker', type:'text', q:'If Yes, name of your primary stock broker?', required:false, showIf:{field:'demat', equals:'Yes'}},
-  {id:'investSize', type:'radio', q:'Typical Investment Size you want to Start With', required:false,
-    options:['Upto 2 Lakh (Prefer Mutual Fund)','2 Lakh to 10 Lakh','10 Lakh to 25 Lakh','25 Lakh – 1 Crore','1 Crore & Above (WMS)']},
+  const FIELDS = [
+    {id:'name', type:'text', q:'Your Name', required:true},
+    {id:'phone', type:'tel', q:'Phone Number', required:true},
+    {id:'email', type:'email', q:'Email Address', required:true},
+    {id:'place', type:'textarea', q:'Place', required:true},
+    {id:'occupation', type:'textarea', q:'What is your occupation? Explain in detail', required:true},
+    {id:'demat', type:'radio', q:'Do you have a Demat & Trading account?', required:true, options:['Yes','No']},
+    {id:'broker', type:'text', q:'If Yes, name of your primary stock broker?', required:false, showIf:{field:'demat', equals:'Yes'}},
+    {id:'investSize', type:'radio', q:'Typical Investment Size you want to Start With', required:false,
+      options:['Upto 2 Lakh (Prefer Mutual Fund)','2 Lakh to 10 Lakh','10 Lakh to 25 Lakh','25 Lakh – 1 Crore','1 Crore & Above (WMS)']},
 
-  {id:'dob', type:'date', q:'Date of Birth', required:true},
-  {id:'monthlyIncome', type:'radio', q:'What is your monthly income?', required:true,
-    options:['₹0 to ₹50,000','₹50,000 to ₹1,00,000','₹1,00,000 to ₹5,00,000','₹5 Lakh & Above']},
-  {id:'netWorth', type:'radio', q:'What is your net worth as on today? (Market value of all assets − liabilities)', required:true,
-    options:['₹0 to ₹50 Lakhs','₹50 Lakhs to ₹5 Crore','₹5 Crore to ₹10 Crore','Above ₹10 Crore']},
-  {id:'experience', type:'radio', q:'How many years of experience do you have in the stock market?', required:true,
-    options:['0 to 3 Years','3 to 5 Years','5 to 10 Years','Above 10 Years']},
-  {id:'wantTrade', type:'radio', q:'Do you want to trade?', hint:'Trade only with money you can afford to lose. You can lose some, most, or even all of your money.', required:true, options:['Yes','No']},
-  {id:'riskTolerance', type:'radio', q:'What is your Risk Tolerance and Return Expectation (per annum)?', required:true,
-    options:['Low (loss of 20%)','Medium (20–40%)','High (above 40%)']},
-  {id:'planDuration', type:'radio', q:'Future Investment plan duration', required:true,
-    options:['1 – 3 Years','3 – 5 Years','5 – 10 Years','Above 10 Years']},
-  {id:'researchType', type:'radio', q:'What type of Research calls do you need?', required:true,
-    options:['Equity Delivery','Futures and Options','Intraday','Long Term Investment']},
-  {id:'shortTermGoals', type:'textarea', q:'What are your short term (within the next one year) financial goals?', required:true},
-  {id:'mediumTermGoals', type:'textarea', q:'What are your medium term (between 1 year and 5 years) financial goals?', required:true},
-  {id:'longTermGoals', type:'textarea', q:'What are your long term (above 5 years) financial goals?', required:true},
-  {id:'priority', type:'radio', q:'What is your Number 1 Priority for opening an account with Vachana Investments?', required:true,
-    options:['Research','Low Brokerage','Technology','Service']},
-  {id:'orderPreference', type:'radio', q:'How do you usually place orders, or what do you prefer?', required:true,
-    options:['Mobile App','Through Dealer']},
-  {id:'servicesExpected', type:'textarea', q:'What services do you expect from us, and how can we serve you better?', required:true},
-];
-const STEP_FIELDS = {
-  1: ['name','phone','email','place','occupation','demat','broker','investSize'],
-  2: ['dob','monthlyIncome','netWorth','experience','wantTrade','riskTolerance','planDuration',
-      'researchType','shortTermGoals','mediumTermGoals','longTermGoals','priority','orderPreference','servicesExpected']
-};
-
-const state = { view:'form1', data:{}, currentRef:null, submitting:false };
-
-function fieldDef(id){ return FIELDS.find(f => f.id === id); }
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-function generateRef(){
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  const seq = String(Math.floor(Math.random()*9999)+1).padStart(4,'0');
-  return `VI-${y}${m}${day}-${seq}`;
-}
-
-function renderField(f){
-  const invalidClass = f._invalid ? 'invalid' : '';
-  let inner = '';
-  if(f.type === 'text' || f.type === 'tel' || f.type === 'email' || f.type === 'date'){
-    inner = `<input type="${f.type}" id="input_${f.id}" value="${(state.data[f.id]||'').replace(/"/g,'&quot;')}" oninput="onInput('${f.id}', this.value)">`;
-  } else if(f.type === 'textarea'){
-    inner = `<textarea id="input_${f.id}" oninput="onInput('${f.id}', this.value)">${state.data[f.id]||''}</textarea>`;
-  } else if(f.type === 'radio'){
-    inner = '<div class="options">' + f.options.map(opt => {
-      const checked = state.data[f.id] === opt ? 'checked' : '';
-      const sel = state.data[f.id] === opt ? 'selected' : '';
-      return `<label class="opt ${sel}"><input type="radio" name="${f.id}" value="${opt}" ${checked} onchange="onInput('${f.id}', this.value)"><span>${opt}</span></label>`;
-    }).join('') + '</div>';
-  }
-  return `
-    <div class="field ${invalidClass}" id="field_${f.id}">
-      <label class="q">${f.q}${f.required ? '<span class="req">*</span>' : ''}</label>
-      ${f.hint ? `<p class="hint">${f.hint}</p>` : ''}
-      ${inner}
-      <div class="error">This field is required.</div>
-    </div>
-  `;
-}
-
-function onInput(id, value){
-  state.data[id] = value;
-  const fEl = document.getElementById('field_'+id);
-  if(fEl) fEl.classList.remove('invalid');
-  if(FIELDS.filter(f => f.showIf && f.showIf.field === id).length || fieldDef(id).type === 'radio') render();
-  else updateLedger();
-}
-
-function visibleFieldsFor(step){
-  return STEP_FIELDS[step].map(fieldDef).filter(f => !f.showIf || state.data[f.showIf.field] === f.showIf.equals);
-}
-
-function validateStep(step){
-  let ok = true;
-  visibleFieldsFor(step).forEach(f => {
-    const el = document.getElementById('field_'+f.id);
-    const val = state.data[f.id];
-    const isEmpty = !val || String(val).trim() === '';
-    if(f.required && isEmpty){ ok = false; el.classList.add('invalid'); }
-    else el.classList.remove('invalid');
-  });
-  return ok;
-}
-
-function render(){
-  const card = document.getElementById('formCard');
-
-  if(state.view === 'form1'){
-    card.innerHTML = `
-      <h2 class="step-title">Section 1 — About you</h2>
-      <p class="step-sub">Basic details so we can identify you and reach out.</p>
-      ${visibleFieldsFor(1).map(renderField).join('')}
-      <div class="nav-row">
-        <span></span>
-        <button class="btn primary" id="step1SubmitBtn" onclick="submitStep1()">Submit for review</button>
-      </div>
-    `;
-  }
-
-  else if(state.view === 'thankyou1'){
-    card.innerHTML = `
-      <div class="success">
-        <div class="mark">✓</div>
-        <h2>Thank you, ${escapeHtml(state.data.name || 'there')}.</h2>
-        <p>Your details have been submitted. <span class="badge pending">Status: Pending</span> — our advisor team will review them shortly.</p>
-        <div class="ref">Reference: ${state.currentRef}</div>
-        <div class="continue">
-          <button class="btn primary" onclick="state.view='form2'; render();">Continue to Section 2 — Financial profile</button>
-        </div>
-      </div>
-    `;
-  }
-
-  else if(state.view === 'form2'){
-    card.innerHTML = `
-      <h2 class="step-title">Section 2 — Financial profile</h2>
-      <p class="step-sub">This helps us tailor research, risk approach and service to your situation.</p>
-      ${visibleFieldsFor(2).map(renderField).join('')}
-      <div class="nav-row">
-        <span></span>
-        <button class="btn primary" id="step2SubmitBtn" onclick="submitStep2()">Submit</button>
-      </div>
-    `;
-  }
-
-  else if(state.view === 'done'){
-    card.innerHTML = `
-      <div class="success">
-        <div class="mark">✓</div>
-        <h2>Thank you, ${escapeHtml(state.data.name || 'valued client')}.</h2>
-        <p>Your full profile has been recorded confidentially. Our team will review your goals and reach out to discuss next steps.</p>
-        <div class="ref">REF: ${state.currentRef}</div>
-      </div>
-    `;
-  }
-
-  updateLedger();
-}
-
-function updateLedger(){
-  const view = state.view;
-  const set = (seg, pct, label, active) => {
-    document.getElementById('fill'+seg).style.width = pct + '%';
-    document.getElementById('seg'+seg+'status').textContent = label;
-    document.getElementById('seg'+seg).classList.toggle('active', active);
+    {id:'dob', type:'date', q:'Date of Birth', required:true},
+    {id:'monthlyIncome', type:'radio', q:'What is your monthly income?', required:true,
+      options:['₹0 to ₹50,000','₹50,000 to ₹1,00,000','₹1,00,000 to ₹5,00,000','₹5 Lakh & Above']},
+    {id:'netWorth', type:'radio', q:'What is your net worth as on today? (Market value of all assets − liabilities)', required:true,
+      options:['₹0 to ₹50 Lakhs','₹50 Lakhs to ₹5 Crore','₹5 Crore to ₹10 Crore','Above ₹10 Crore']},
+    {id:'experience', type:'radio', q:'How many years of experience do you have in the stock market?', required:true,
+      options:['0 to 3 Years','3 to 5 Years','5 to 10 Years','Above 10 Years']},
+    {id:'wantTrade', type:'radio', q:'Do you want to trade?', hint:'Trade only with money you can afford to lose. You can lose some, most, or even all of your money.', required:true, options:['Yes','No']},
+    {id:'riskTolerance', type:'radio', q:'What is your Risk Tolerance and Return Expectation (per annum)?', required:true,
+      options:['Low (loss of 20%)','Medium (20–40%)','High (above 40%)']},
+    {id:'planDuration', type:'radio', q:'Future Investment plan duration', required:true,
+      options:['1 – 3 Years','3 – 5 Years','5 – 10 Years','Above 10 Years']},
+    {id:'researchType', type:'radio', q:'What type of Research calls do you need?', required:true,
+      options:['Equity Delivery','Futures and Options','Intraday','Long Term Investment']},
+    {id:'shortTermGoals', type:'textarea', q:'What are your short term (within the next one year) financial goals?', required:true},
+    {id:'mediumTermGoals', type:'textarea', q:'What are your medium term (between 1 year and 5 years) financial goals?', required:true},
+    {id:'longTermGoals', type:'textarea', q:'What are your long term (above 5 years) financial goals?', required:true},
+    {id:'priority', type:'radio', q:'What is your Number 1 Priority for opening an account with Vachana Investments?', required:true,
+      options:['Research','Low Brokerage','Technology','Service']},
+    {id:'orderPreference', type:'radio', q:'How do you usually place orders, or what do you prefer?', required:true,
+      options:['Mobile App','Through Dealer']},
+    {id:'servicesExpected', type:'textarea', q:'What services do you expect from us, and how can we serve you better?', required:true},
+  ];
+  const STEP_FIELDS = {
+    1: ['name','phone','email','place','occupation','demat','broker','investSize'],
+    2: ['dob','monthlyIncome','netWorth','experience','wantTrade','riskTolerance','planDuration',
+        'researchType','shortTermGoals','mediumTermGoals','longTermGoals','priority','orderPreference','servicesExpected']
   };
-  if(view === 'form1'){
-    const req = visibleFieldsFor(1).filter(f=>f.required);
-    const filled = req.filter(f => state.data[f.id] && String(state.data[f.id]).trim() !== '');
-    const pct = req.length ? Math.round(filled.length/req.length*100) : 0;
-    set(1, pct, pct+'%', true); set(2, 0, 'Not started', false);
-  } else if(view === 'thankyou1'){
-    set(1, 100, 'Submitted', false); set(2, 0, 'Not started', false);
-  } else if(view === 'form2'){
-    const req = visibleFieldsFor(2).filter(f=>f.required);
-    const filled = req.filter(f => state.data[f.id] && String(state.data[f.id]).trim() !== '');
-    const pct = req.length ? Math.round(filled.length/req.length*100) : 0;
-    set(1, 100, 'Submitted', false); set(2, pct, pct+'%', true);
-  } else if(view === 'done'){
-    set(1, 100, 'Submitted', false); set(2, 100, 'Complete', false);
+
+  const state = { view:'form1', data:{}, currentRef:null, submitting:false };
+
+  function fieldDef(id){ return FIELDS.find(f => f.id === id); }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function generateRef(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    const seq = String(Math.floor(Math.random()*9999)+1).padStart(4,'0');
+    return `VI-${y}${m}${day}-${seq}`;
   }
-}
 
-async function postToAppsScript(record){
-  return fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(record)
-  });
-}
-
-async function submitStep1(){
-  if(!validateStep(1)) return;
-  const btn = document.getElementById('step1SubmitBtn');
-  btn.disabled = true; btn.textContent = 'Submitting…';
-
-  const ref = generateRef();
-  state.currentRef = ref;
-  const record = { ref, status:'Pending', submittedAt: new Date().toISOString() };
-  FIELDS.forEach(f => { if(state.data[f.id] !== undefined) record[f.id] = state.data[f.id]; });
-
-  try{
-    await postToAppsScript(record);
-    state.view = 'thankyou1';
-    render();
-    window.scrollTo({top:0, behavior:'smooth'});
-  }catch(e){
-    console.error('Submission failed', e);
-    btn.disabled = false; btn.textContent = 'Submit for review';
-    alert('Something went wrong sending your details. Please check your connection and try again.');
+  function renderField(f){
+    const invalidClass = f._invalid ? 'invalid' : '';
+    let inner = '';
+    if(f.type === 'text' || f.type === 'tel' || f.type === 'email' || f.type === 'date'){
+      inner = `<input type="${f.type}" id="input_${f.id}" value="${(state.data[f.id]||'').replace(/"/g,'&quot;')}" oninput="onInput('${f.id}', this.value)">`;
+    } else if(f.type === 'textarea'){
+      inner = `<textarea id="input_${f.id}" oninput="onInput('${f.id}', this.value)">${state.data[f.id]||''}</textarea>`;
+    } else if(f.type === 'radio'){
+      inner = '<div class="options">' + f.options.map(opt => {
+        const checked = state.data[f.id] === opt ? 'checked' : '';
+        const sel = state.data[f.id] === opt ? 'selected' : '';
+        return `<label class="opt ${sel}"><input type="radio" name="${f.id}" value="${opt}" ${checked} onchange="onInput('${f.id}', this.value)"><span>${opt}</span></label>`;
+      }).join('') + '</div>';
+    }
+    return `
+      <div class="field ${invalidClass}" id="field_${f.id}">
+        <label class="q">${f.q}${f.required ? '<span class="req">*</span>' : ''}</label>
+        ${f.hint ? `<p class="hint">${f.hint}</p>` : ''}
+        ${inner}
+        <div class="error">This field is required.</div>
+      </div>
+    `;
   }
-}
 
-async function submitStep2(){
-  if(!validateStep(2)) return;
-  const btn = document.getElementById('step2SubmitBtn');
-  btn.disabled = true; btn.textContent = 'Submitting…';
-
-  const record = { ref: state.currentRef, status:'Completed', submittedAt2: new Date().toISOString() };
-  FIELDS.forEach(f => { if(state.data[f.id] !== undefined) record[f.id] = state.data[f.id]; });
-
-  try{
-    await postToAppsScript(record);
-    state.view = 'done';
-    render();
-    window.scrollTo({top:0, behavior:'smooth'});
-  }catch(e){
-    console.error('Submission failed', e);
-    btn.disabled = false; btn.textContent = 'Submit';
-    alert('Something went wrong sending your details. Please check your connection and try again.');
+  function onInput(id, value){
+    state.data[id] = value;
+    const fEl = document.getElementById('field_'+id);
+    if(fEl) fEl.classList.remove('invalid');
+    if(FIELDS.filter(f => f.showIf && f.showIf.field === id).length || fieldDef(id).type === 'radio') render();
+    else updateLedger();
   }
-}
 
-function openAdmin(){ document.getElementById('adminModal').classList.add('open'); }
-function closeAdmin(){ document.getElementById('adminModal').classList.remove('open'); }
-
-async function sendTestRow(){
-  const msg = document.getElementById('adminMsg');
-  msg.textContent = 'Sending test row…';
-  msg.style.color = 'var(--brass)';
-  try{
-    await postToAppsScript({ ref:'TEST-0000', status:'Test', name:'Test Row', submittedAt:new Date().toISOString() });
-    msg.textContent = 'Test row sent. Check your Google Sheet to confirm it arrived.';
-    msg.style.color = 'var(--emerald)';
-  }catch(e){
-    msg.textContent = 'Could not reach the Apps Script URL.';
-    msg.style.color = 'var(--danger)';
+  function visibleFieldsFor(step){
+    return STEP_FIELDS[step].map(fieldDef).filter(f => !f.showIf || state.data[f.showIf.field] === f.showIf.equals);
   }
-}
 
-render();
+  function validateStep(step){
+    let ok = true;
+    visibleFieldsFor(step).forEach(f => {
+      const el = document.getElementById('field_'+f.id);
+      const val = state.data[f.id];
+      const isEmpty = !val || String(val).trim() === '';
+      if(f.required && isEmpty){ ok = false; el.classList.add('invalid'); }
+      else el.classList.remove('invalid');
+    });
+    return ok;
+  }
+
+  function render(){
+    const card = document.getElementById('formCard');
+
+    if(state.view === 'form1'){
+      card.innerHTML = `
+        <h2 class="step-title">Section 1 — About you</h2>
+        <p class="step-sub">Basic details so we can identify you and reach out.</p>
+        ${visibleFieldsFor(1).map(renderField).join('')}
+        <div class="nav-row">
+          <span></span>
+          <button class="btn primary" id="step1SubmitBtn" onclick="submitStep1()">Submit for review</button>
+        </div>
+      `;
+    }
+
+    else if(state.view === 'thankyou1'){
+      card.innerHTML = `
+        <div class="success">
+          <div class="mark">✓</div>
+          <h2>Thank you, ${escapeHtml(state.data.name || 'there')}.</h2>
+          <p>Your details have been submitted. <span class="badge pending">Status: Pending</span> — our advisor team will review them shortly.</p>
+          <div class="ref">Reference: ${state.currentRef}</div>
+          <div class="continue">
+            <button class="btn primary" onclick="state.view='form2'; render();">Continue to Section 2 — Financial profile</button>
+          </div>
+        </div>
+      `;
+    }
+
+    else if(state.view === 'form2'){
+      card.innerHTML = `
+        <h2 class="step-title">Section 2 — Financial profile</h2>
+        <p class="step-sub">This helps us tailor research, risk approach and service to your situation.</p>
+        ${visibleFieldsFor(2).map(renderField).join('')}
+        <div class="nav-row">
+          <span></span>
+          <button class="btn primary" id="step2SubmitBtn" onclick="submitStep2()">Submit</button>
+        </div>
+      `;
+    }
+
+    else if(state.view === 'done'){
+      card.innerHTML = `
+        <div class="success">
+          <div class="mark">✓</div>
+          <h2>Thank you, ${escapeHtml(state.data.name || 'valued client')}.</h2>
+          <p>Your full profile has been recorded confidentially. Our team will review your goals and reach out to discuss next steps.</p>
+          <div class="ref">REF: ${state.currentRef}</div>
+        </div>
+      `;
+    }
+
+    updateLedger();
+  }
+
+  function updateLedger(){
+    const view = state.view;
+    const set = (seg, pct, label, active) => {
+      document.getElementById('fill'+seg).style.width = pct + '%';
+      document.getElementById('seg'+seg+'status').textContent = label;
+      document.getElementById('seg'+seg).classList.toggle('active', active);
+    };
+    if(view === 'form1'){
+      const req = visibleFieldsFor(1).filter(f=>f.required);
+      const filled = req.filter(f => state.data[f.id] && String(state.data[f.id]).trim() !== '');
+      const pct = req.length ? Math.round(filled.length/req.length*100) : 0;
+      set(1, pct, pct+'%', true); set(2, 0, 'Not started', false);
+    } else if(view === 'thankyou1'){
+      set(1, 100, 'Submitted', false); set(2, 0, 'Not started', false);
+    } else if(view === 'form2'){
+      const req = visibleFieldsFor(2).filter(f=>f.required);
+      const filled = req.filter(f => state.data[f.id] && String(state.data[f.id]).trim() !== '');
+      const pct = req.length ? Math.round(filled.length/req.length*100) : 0;
+      set(1, 100, 'Submitted', false); set(2, pct, pct+'%', true);
+    } else if(view === 'done'){
+      set(1, 100, 'Submitted', false); set(2, 100, 'Complete', false);
+    }
+  }
+
+  async function postToAppsScript(record){
+    try {
+      console.log('Sending data:', record);
+      
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'cors', // Changed from 'no-cors'
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(record)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Response from server:', result);
+      return result;
+    } catch(error) {
+      console.error('Error posting to Apps Script:', error);
+      throw error;
+    }
+  }
+
+  async function submitStep1(){
+    if(!validateStep(1)) return;
+    const btn = document.getElementById('step1SubmitBtn');
+    btn.disabled = true; btn.textContent = 'Submitting…';
+
+    const ref = generateRef();
+    state.currentRef = ref;
+    
+    // Create the record with all fields
+    const record = { 
+      ref: ref,
+      name: state.data.name || '',
+      phone: state.data.phone || '',
+      email: state.data.email || '',
+      place: state.data.place || '',
+      occupation: state.data.occupation || '',
+      demat: state.data.demat || '',
+      broker: state.data.broker || '',
+      investSize: state.data.investSize || ''
+    };
+
+    try{
+      await postToAppsScript(record);
+      state.view = 'thankyou1';
+      render();
+      window.scrollTo({top:0, behavior:'smooth'});
+    }catch(e){
+      console.error('Submission failed', e);
+      btn.disabled = false; 
+      btn.textContent = 'Submit for review';
+      alert('Something went wrong sending your details. Please check your connection and try again.\n\nError: ' + e.message);
+    }
+  }
+
+  async function submitStep2(){
+    if(!validateStep(2)) return;
+    const btn = document.getElementById('step2SubmitBtn');
+    btn.disabled = true; 
+    btn.textContent = 'Submitting…';
+
+    // Get Section 2 data
+    const record = {
+      ref: state.currentRef,
+      dob: state.data.dob || '',
+      monthlyIncome: state.data.monthlyIncome || '',
+      netWorth: state.data.netWorth || '',
+      experience: state.data.experience || '',
+      wantTrade: state.data.wantTrade || '',
+      riskTolerance: state.data.riskTolerance || '',
+      planDuration: state.data.planDuration || '',
+      researchType: state.data.researchType || '',
+      shortTermGoals: state.data.shortTermGoals || '',
+      mediumTermGoals: state.data.mediumTermGoals || '',
+      longTermGoals: state.data.longTermGoals || '',
+      priority: state.data.priority || '',
+      orderPreference: state.data.orderPreference || '',
+      servicesExpected: state.data.servicesExpected || ''
+    };
+
+    try{
+      await postToAppsScript(record);
+      state.view = 'done';
+      render();
+      window.scrollTo({top:0, behavior:'smooth'});
+    }catch(e){
+      console.error('Submission failed', e);
+      btn.disabled = false; 
+      btn.textContent = 'Submit';
+      alert('Something went wrong sending your details. Please check your connection and try again.\n\nError: ' + e.message);
+    }
+  }
+
+  function openAdmin(){ document.getElementById('adminModal').classList.add('open'); }
+  function closeAdmin(){ document.getElementById('adminModal').classList.remove('open'); }
+
+  async function sendTestRow(){
+    const msg = document.getElementById('adminMsg');
+    msg.textContent = 'Sending test row…';
+    msg.style.color = 'var(--brass)';
+    try{
+      const testData = { 
+        ref:'TEST-0000', 
+        name:'Test Row', 
+        phone:'1234567890',
+        email:'test@test.com'
+      };
+      await postToAppsScript(testData);
+      msg.textContent = 'Test row sent successfully! Check your Google Sheet.';
+      msg.style.color = 'var(--emerald)';
+    }catch(e){
+      msg.textContent = 'Error: ' + e.message;
+      msg.style.color = 'var(--danger)';
+    }
+  }
+
+  render();
 </script>
-</body>
 </html>
