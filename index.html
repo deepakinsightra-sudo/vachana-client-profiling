@@ -275,50 +275,27 @@
     return { success: true, message: 'Data sent' };
   }
 
- async function submitForm(){
-  if(!validateAll()) return;
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.textContent = 'Submitting…';
-
-  const ref = generateRef();
-  state.currentRef = ref;
-
-  const record = { ref: ref };
-  
-  visibleFields().forEach(f => {
-    const val = state.data[f.id];
+async function postToAppsScript(record){
+  try {
+    console.log('Sending data:', record);
     
-    // Handle different field types
-    if (f.type === 'checkbox') {
-      // Checkbox: send as array (will be converted to comma-separated in Apps Script)
-      record[f.id] = Array.isArray(val) ? val : [];
-    } else if (f.type === 'select') {
-      // Select dropdown: send as string
-      record[f.id] = val || '';
-    } else {
-      // Text, textarea, radio, date: send as string
-      record[f.id] = val || '';
-    }
-  });
-
-  // Calculate and add grade
-  const grade = calculateGrade(
-    state.data.monthlyIncome || '', 
-    state.data.netWorth || ''
-  );
-  record.grade = grade;
-
-  try{
-    await postToAppsScript(record);
-    state.view = 'done';
-    render();
-    window.scrollTo({top:0, behavior:'smooth'});
-  }catch(e){
-    console.error('Submission failed', e);
-    btn.disabled = false;
-    btn.textContent = 'Submit Wealth Assessment';
-    alert('Something went wrong sending your details. Please check your connection and try again.\n\nError: ' + e.message);
+    // Use no-cors but don't wait for response
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record)
+    });
+    
+    // With no-cors, we can't read the response,
+    // but the request was sent successfully
+    console.log('Data sent successfully (no-cors mode)');
+    
+    // Always return success since we can't check the response
+    return { success: true, message: 'Data sent' };
+  } catch(error) {
+    console.error('Error posting to Apps Script:', error);
+    throw error;
   }
 }
 
