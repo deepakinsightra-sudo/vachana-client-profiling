@@ -79,7 +79,10 @@
   button.btn{ font-family:'Inter',sans-serif; font-weight:600; font-size:14px; padding:12px 26px; border-radius:4px; cursor:pointer; border:none; }
   button.btn.primary{background:var(--ink); color:var(--ivory);}
   button.btn.primary:hover{background:var(--emerald);}
+  button.btn.ghost{background:transparent; color:var(--slate); border:1px solid var(--line);}
+  button.btn.ghost:hover{border-color:var(--ink); color:var(--ink);}
   button.btn:disabled{opacity:0.5; cursor:default;}
+  button.btn.small{padding:7px 14px; font-size:12.5px;}
 
   .success{ text-align:center; padding:40px 10px; }
   .success .mark{ width:56px; height:56px; border-radius:50%; background:var(--emerald); color:var(--ivory);
@@ -94,6 +97,49 @@
     padding:3px 8px; border-radius:10px; display:inline-block;
   }
   .badge.pending{background:#F3E7D6; color:#8A5A22;}
+  .badge.approved{background:#D4EDDA; color:#155724;}
+  .badge.rejected{background:#F8D7DA; color:#721C24;}
+
+  .status-check-box {
+    background: var(--ivory);
+    padding: 20px 24px;
+    border-radius: 6px;
+    margin: 20px 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+  .status-check-box input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .status-check-box input:focus {
+    border-color: var(--emerald);
+    outline: none;
+  }
+
+  .toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 6px;
+    color: white;
+    font-weight: 600;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: none;
+    max-width: 400px;
+  }
+  .toast.success { background: var(--emerald); display: block; }
+  .toast.error { background: var(--danger); display: block; }
+  .toast.info { background: var(--brass); display: block; }
 </style>
 </head>
 <body>
@@ -118,11 +164,13 @@
 
 </div>
 
+<div id="toast" class="toast"></div>
+
 <script>
   // ⚠️ UPDATE THIS URL AFTER DEPLOYING APPS SCRIPT ⚠️
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzZDbgD1EHQExmV2-COAvCUWu5z-pl3GsUWapkdIFLXtkQ1KvKm2P8mKJaDNXzBh0QaIw/exec';
 
-  // ============ FIELDS ============
+  // ============ ALL FIELDS (Single Section) ============
   const FIELDS = [
     {id:'name', type:'text', q:'Your Name', required:true},
     {id:'phone', type:'tel', q:'Phone Number', required:true},
@@ -135,9 +183,9 @@
     {id:'dob', type:'date', q:'Date of Birth', required:true},
     {id:'monthlyIncome', type:'radio', q:'What is your monthly income?', required:true,
       options:['₹0 to ₹50,000','₹50,000 to ₹1,00,000','₹1,00,000 to ₹5,00,000','₹5 Lakh & Above']},
-    {id:'netWorth', type:'radio', q:'What is your net worth as on today? (Market value of all assets − all liabilities)', required:true,
+    {id:'netWorth', type:'radio', q:'What is your net worth as on today? (Market value of all assets − liabilities)', required:true,
       options:['₹0 to ₹50 Lakhs','₹50 Lakhs to ₹5 Crore','₹5 Crore to ₹10 Crore','Above ₹10 Crore']},
-    {id:'experience', type:'radio', q:'How many years of experience do you have in stock market?', required:true,
+    {id:'experience', type:'radio', q:'How many years of experience do you have in the stock market?', required:true,
       options:['0 to 3 Years','3 to 5 Years','5 to 10 Years','Above 10 Years']},
     {id:'tradeOrInvest', type:'radio', q:'Do you want to', required:true,
       options:['Trade','Invest','Both Trade and Invest']},
@@ -161,18 +209,24 @@
       options:['Bhargav','Shalom','Deepak']},
   ];
 
-  const state = { view:'form', data:{}, currentRef:null };
+  const state = { 
+    view: 'form', 
+    data: {}, 
+    currentRef: null,
+    status: 'pending'
+  };
 
+  // ============ HELPER FUNCTIONS ============
   function fieldDef(id){ return FIELDS.find(f => f.id === id); }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   function generateRef(){
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,'0');
-    const day = String(d.getDate()).padStart(2,'0');
-    const seq = String(Math.floor(Math.random()*9999)+1).padStart(4,'0');
-    return `VI-${y}${m}${day}-${seq}`;
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = 'VI-';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   }
 
   function visibleFields(){
@@ -219,7 +273,7 @@
     state.data[id] = value;
     const fEl = document.getElementById('field_'+id);
     if(fEl) fEl.classList.remove('invalid');
-    if(FIELDS.filter(f => f.showIf && f.showIf.field === id).length || fieldDef(id).type === 'radio' || fieldDef(id).type === 'select') render();
+    render();
   }
 
   function onCheckbox(id, option, checked){
@@ -246,46 +300,57 @@
     return ok;
   }
 
-  function render(){
-    const card = document.getElementById('formCard');
+  function showToast(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type;
+    setTimeout(() => { toast.className = 'toast'; }, 5000);
+  }
 
-    if(state.view === 'form'){
-      card.innerHTML = `
-        ${visibleFields().map(renderField).join('')}
-        <div class="nav-row">
-          <button class="btn primary" id="submitBtn" onclick="submitForm()">Submit Wealth Assessment</button>
-        </div>
-      `;
-    } else if(state.view === 'done'){
-      card.innerHTML = `
-        <div class="success">
-          <div class="mark">✓</div>
-          <h2>Thank you, ${escapeHtml(state.data.name || 'valued client')}.</h2>
-          <p>Your details have been submitted. <span class="badge pending">Status: Pending</span> — our advisor team will review them confidentially and reach out to discuss next steps.</p>
-          <div class="ref">Reference: ${state.currentRef}</div>
-        </div>
-      `;
-    }
+  // ============ GRADING FUNCTIONS ============
+  function getIncomeGrade(income) {
+    const map = {
+      '₹0 to ₹50,000': 'D',
+      '₹50,000 to ₹1,00,000': 'C',
+      '₹1,00,000 to ₹5,00,000': 'B',
+      '₹5 Lakh & Above': 'A'
+    };
+    return map[income] || 'D';
+  }
+
+  function getNetworthGrade(networth) {
+    const map = {
+      '₹0 to ₹50 Lakhs': 'D',
+      '₹50 Lakhs to ₹5 Crore': 'C',
+      '₹5 Crore to ₹10 Crore': 'B',
+      'Above ₹10 Crore': 'A'
+    };
+    return map[networth] || 'D';
+  }
+
+  function calculateGrade(income, networth) {
+    const incomeGrade = getIncomeGrade(income);
+    const networthGrade = getNetworthGrade(networth);
+    if (incomeGrade === 'D' || networthGrade === 'D') return 'D';
+    const combo = incomeGrade + networthGrade;
+    if (['AA', 'AB', 'BA'].includes(combo)) return 'A';
+    if (['BB', 'BC', 'CB'].includes(combo)) return 'B';
+    if (['CC', 'CD', 'DC'].includes(combo)) return 'C';
+    return 'D';
   }
 
   // ============ SEND DATA ============
-  async function sendDataToSheet(record) {
+  async function postToAppsScript(record) {
     try {
-      console.log('📤 Sending:', record);
-      
       const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(record)
       });
-
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json();
-      console.log('✅ Response:', result);
-      return result;
+      return await response.json();
     } catch (error) {
-      console.log('❌ CORS failed, trying no-cors...');
       await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
@@ -296,10 +361,103 @@
     }
   }
 
+  // ============ CHECK STATUS ============
+  async function checkStatus(query) {
+    try {
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'checkStatus',
+          query: query
+        })
+      });
+      return await response.json();
+    } catch(e) {
+      return { success: false, message: e.message };
+    }
+  }
+
+  // ============ RENDER ============
+  function render() {
+    const card = document.getElementById('formCard');
+
+    // --- FORM VIEW ---
+    if (state.view === 'form') {
+      card.innerHTML = `
+        ${visibleFields().map(renderField).join('')}
+        <div class="nav-row">
+          <button class="btn primary" id="submitBtn" onclick="submitForm()">Submit Wealth Assessment</button>
+        </div>
+        <div style="margin-top:30px; padding-top:30px; border-top:1px solid var(--line);">
+          <p style="color:var(--slate); font-size:13px; margin:0 0 12px;"><strong>Already submitted?</strong> Check your status:</p>
+          <div class="status-check-box">
+            <input type="text" id="statusCheckInput" placeholder="Enter your Reference ID or Phone Number" style="flex:1; min-width:200px; padding:10px 14px; border:1px solid var(--line); border-radius:4px; font-size:14px; font-family:'IBM Plex Mono',monospace;">
+            <button class="btn primary small" onclick="checkStatusAndRedirect()">Check Status</button>
+          </div>
+          <div id="statusResult" style="margin-top:10px; font-size:14px;"></div>
+        </div>
+      `;
+    }
+
+    // --- STATUS VIEW (After submission) ---
+    else if (state.view === 'status') {
+      const statusClass = state.status === 'Approved' ? 'approved' : state.status === 'Rejected' ? 'rejected' : 'pending';
+      const statusIcon = state.status === 'Approved' ? '✅' : state.status === 'Rejected' ? '❌' : '⏳';
+      const statusMsg = state.status === 'Approved' ? 'Your application has been approved!' :
+                       state.status === 'Rejected' ? 'Your application was not approved.' :
+                       'Your application is under review.';
+
+      card.innerHTML = `
+        <div style="text-align:center; padding:30px 10px;">
+          <div style="font-size:48px; margin-bottom:16px;">${statusIcon}</div>
+          <h2 style="font-family:'Fraunces',serif; font-size:24px; margin:0 0 8px;">${state.status === 'Approved' ? 'Congratulations!' : 'Status Update'}</h2>
+          <p style="color:var(--slate); font-size:14px; max-width:440px; margin:0 auto;">${statusMsg}</p>
+          <div style="margin:16px 0;">
+            <span class="badge ${statusClass}" style="font-size:16px; padding:8px 24px;">${state.status}</span>
+          </div>
+          <div class="ref">Reference: ${state.currentRef}</div>
+          ${state.status === 'Approved' ? `
+            <div style="margin-top:20px; padding:20px; background:#EFF4F1; border-radius:6px;">
+              <p style="margin:0; color:var(--emerald); font-weight:600;">✅ Your submission has been approved!</p>
+              <p style="margin:8px 0 0; font-size:13px; color:var(--slate);">Thank you for completing the Wealth Assessment.</p>
+            </div>
+          ` : `
+            <div style="margin-top:20px;">
+              <button class="btn primary small" onclick="state.view='form'; render();">Back to Form</button>
+            </div>
+          `}
+          ${state.status === 'Pending' ? `
+            <div style="margin-top:16px; font-size:13px; color:var(--slate);">
+              <p>Check back later for updates.</p>
+              <button class="btn ghost small" onclick="checkStatusAndRedirect()">Refresh Status</button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // --- DONE VIEW (After full submission) ---
+    else if (state.view === 'done') {
+      const grade = calculateGrade(state.data.monthlyIncome || '', state.data.netWorth || '');
+      card.innerHTML = `
+        <div class="success">
+          <div class="mark">✓</div>
+          <h2>Thank you, ${escapeHtml(state.data.name || 'valued client')}.</h2>
+          <p>Your full profile has been recorded confidentially. Our team will review your goals and reach out to discuss next steps.</p>
+          <div class="ref">Reference: ${state.currentRef}</div>
+          <div style="margin-top:16px;">
+            <span class="badge ${grade === 'A' ? 'approved' : 'pending'}" style="font-size:16px; padding:6px 20px;">Grade: ${grade}</span>
+          </div>
+        </div>
+      `;
+    }
+  }
+
   // ============ SUBMIT FORM ============
   async function submitForm() {
     if (!validateAll()) {
-      alert('Please fill in all required fields.');
+      showToast('Please fill in all required fields.', 'error');
       return;
     }
 
@@ -310,14 +468,9 @@
     const ref = generateRef();
     state.currentRef = ref;
 
-    const record = { ref: ref };
-
+    const record = { ref: ref, status: 'Pending' };
     FIELDS.forEach(f => {
-      const isVisible = !f.showIf || state.data[f.showIf.field] === f.showIf.equals;
-      if (!isVisible) return;
-
       const val = state.data[f.id];
-      
       if (f.type === 'checkbox') {
         record[f.id] = Array.isArray(val) ? val.join(', ') : '';
       } else {
@@ -325,139 +478,60 @@
       }
     });
 
-    console.log('📦 Final record:', record);
+    const grade = calculateGrade(state.data.monthlyIncome || '', state.data.netWorth || '');
+    record.grade = grade;
 
     try {
-      await sendDataToSheet(record);
-      state.view = 'done';
+      await postToAppsScript(record);
+      state.status = 'Pending';
+      state.view = 'status';
       render();
       window.scrollTo({top: 0, behavior: 'smooth'});
-    } catch (error) {
-      console.error('❌ Error:', error);
-      alert('Error submitting form: ' + error.message);
+      showToast('✅ Form submitted successfully!', 'success');
+    } catch(e) {
       btn.disabled = false;
       btn.textContent = 'Submit Wealth Assessment';
+      showToast('Error: ' + e.message, 'error');
     }
   }
 
-  // Initialize
+  // ============ CHECK STATUS AND REDIRECT ============
+  async function checkStatusAndRedirect() {
+    const input = document.getElementById('statusCheckInput');
+    const resultDiv = document.getElementById('statusResult');
+    const query = input.value.trim();
+
+    if (!query) {
+      resultDiv.innerHTML = '<span style="color:var(--danger);">Please enter your Reference ID or Phone Number.</span>';
+      return;
+    }
+
+    resultDiv.innerHTML = '<span style="color:var(--brass);">Checking...</span>';
+
+    try {
+      const result = await checkStatus(query);
+
+      if (result.success) {
+        // Store the lead data
+        Object.keys(result.data || {}).forEach(key => {
+          state.data[key] = result.data[key];
+        });
+        state.currentRef = result.leadID;
+        state.status = result.status;
+        state.view = 'status';
+        render();
+        window.scrollTo({top: 0, behavior: 'smooth'});
+      } else {
+        resultDiv.innerHTML = `<span style="color:var(--danger);">❌ ${result.message || 'Not found. Please check your Reference ID or Phone Number.'}</span>`;
+      }
+    } catch(e) {
+      resultDiv.innerHTML = `<span style="color:var(--danger);">Error: ${e.message}</span>`;
+    }
+  }
+
+  // ============ INITIALIZE ============
   state.view = 'form';
   render();
-  // ============ ADMIN FUNCTIONS ============
-
-function toggleAdmin() {
-  const panel = document.getElementById('adminPanel');
-  if (panel) {
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-  }
-}
-
-async function updateLeadStatus() {
-  const leadID = document.getElementById('searchLead').value.trim();
-  const newStatus = document.getElementById('newStatus').value;
-  const resultDiv = document.getElementById('adminResult');
-  
-  if (!leadID) {
-    resultDiv.innerHTML = '❌ Please enter a Lead ID';
-    resultDiv.style.color = '#9E4B3E';
-    return;
-  }
-  
-  try {
-    const response = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        action: 'updateStatus',
-        leadID: leadID,
-        status: newStatus 
-      })
-    });
-    
-    const result = await response.json();
-    resultDiv.innerHTML = result.success ? '✅ ' + result.message : '❌ ' + result.message;
-    resultDiv.style.color = result.success ? '#1F4B3F' : '#9E4B3E';
-    
-  } catch(e) {
-    resultDiv.innerHTML = '❌ Error: ' + e.message;
-    resultDiv.style.color = '#9E4B3E';
-  }
-}
-
-async function viewLead() {
-  const leadID = document.getElementById('searchLead').value.trim();
-  const resultDiv = document.getElementById('adminResult');
-  
-  if (!leadID) {
-    resultDiv.innerHTML = '❌ Please enter a Lead ID';
-    resultDiv.style.color = '#9E4B3E';
-    return;
-  }
-  
-  try {
-    const response = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        action: 'getLeadById',
-        leadID: leadID
-      })
-    });
-    
-    const result = await response.json();
-    if (result.success) {
-      resultDiv.innerHTML = '📋 Lead found: <pre style="background:#f5f5f5;padding:10px;border-radius:4px;overflow:auto;">' + JSON.stringify(result.lead, null, 2) + '</pre>';
-      resultDiv.style.color = '#1F4B3F';
-    } else {
-      resultDiv.innerHTML = '❌ ' + result.message;
-      resultDiv.style.color = '#9E4B3E';
-    }
-  } catch(e) {
-    resultDiv.innerHTML = '❌ Error: ' + e.message;
-    resultDiv.style.color = '#9E4B3E';
-  }
-}
-
-async function getAllLeads() {
-  const listDiv = document.getElementById('allLeadsList');
-  
-  try {
-    const response = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'getAllLeads' })
-    });
-    
-    const result = await response.json();
-    if (result.success) {
-      let html = '<table style="width:100%; border-collapse:collapse; font-size:12px;">';
-      html += '<tr style="background:#e6e6e6;">';
-      html += '<th style="padding:5px; border:1px solid #ddd; text-align:left;">Lead ID</th>';
-      html += '<th style="padding:5px; border:1px solid #ddd; text-align:left;">Name</th>';
-      html += '<th style="padding:5px; border:1px solid #ddd; text-align:left;">Phone</th>';
-      html += '<th style="padding:5px; border:1px solid #ddd; text-align:left;">Status</th>';
-      html += '<th style="padding:5px; border:1px solid #ddd; text-align:left;">Grade</th>';
-      html += '</tr>';
-      
-      result.leads.forEach(lead => {
-        html += '<tr>';
-        html += '<td style="padding:5px; border:1px solid #ddd;">' + (lead['Lead ID'] || '') + '</td>';
-        html += '<td style="padding:5px; border:1px solid #ddd;">' + (lead['Your Name'] || '') + '</td>';
-        html += '<td style="padding:5px; border:1px solid #ddd;">' + (lead['Phone Number'] || '') + '</td>';
-        html += '<td style="padding:5px; border:1px solid #ddd;">' + (lead['Status'] || '') + '</td>';
-        html += '<td style="padding:5px; border:1px solid #ddd;">' + (lead['Grade'] || '') + '</td>';
-        html += '</tr>';
-      });
-      
-      html += '</table>';
-      listDiv.innerHTML = html;
-    } else {
-      listDiv.innerHTML = '❌ ' + result.message;
-    }
-  } catch(e) {
-    listDiv.innerHTML = '❌ Error: ' + e.message;
-  }
-}
 </script>
 </body>
 </html>
