@@ -402,6 +402,7 @@
   }
 
   // ============ SUBMIT FORM ============
+    // ============ SUBMIT FORM ============
   async function submitForm() {
     // Validate all fields
     if (!validateAll()) {
@@ -425,10 +426,13 @@
       const val = state.data[f.id];
       
       if (f.type === 'checkbox') {
-        record[f.id] = Array.isArray(val) ? val.join(', ') : '';
+        // Checkbox: send as array (will be converted to string in Apps Script)
+        record[f.id] = Array.isArray(val) ? val : [];
       } else if (f.type === 'select') {
+        // Select dropdown: send as string
         record[f.id] = val || '';
       } else {
+        // Text, textarea, radio, date: send as string
         record[f.id] = val || '';
       }
     });
