@@ -94,23 +94,6 @@
     padding:3px 8px; border-radius:10px; display:inline-block;
   }
   .badge.pending{background:#F3E7D6; color:#8A5A22;}
-
-  .toast {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 15px 25px;
-    border-radius: 6px;
-    color: white;
-    font-weight: 600;
-    z-index: 9999;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    display: none;
-    max-width: 400px;
-  }
-  .toast.success { background: var(--emerald); display: block; }
-  .toast.error { background: var(--danger); display: block; }
-  .toast.info { background: var(--brass); display: block; }
 </style>
 </head>
 <body>
@@ -135,10 +118,9 @@
 
 </div>
 
-<div id="toast" class="toast"></div>
-
 <script>
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzZDbgD1EHQExmV2-COAvCUWu5z-pl3GsUWapkdIFLXtkQ1KvKm2P8mKJaDNXzBh0QaIw/exec';
+  // ⚠️ UPDATE THIS URL AFTER DEPLOYING APPS SCRIPT ⚠️
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_APP_SCRIPT_URL/exec';
 
   // ============ FIELDS ============
   const FIELDS = [
@@ -264,13 +246,6 @@
     return ok;
   }
 
-  function showToast(message, type) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.className = 'toast ' + type;
-    setTimeout(() => { toast.className = 'toast'; }, 5000);
-  }
-
   function render(){
     const card = document.getElementById('formCard');
 
@@ -291,41 +266,6 @@
         </div>
       `;
     }
-  }
-
-  // ============ GRADING FUNCTIONS ============
-  function getIncomeGrade(income) {
-    const map = {
-      '₹0 to ₹50,000': 'D',
-      '₹50,000 to ₹1,00,000': 'C',
-      '₹1,00,000 to ₹5,00,000': 'B',
-      '₹5 Lakh & Above': 'A'
-    };
-    return map[income] || 'D';
-  }
-
-  function getNetworthGrade(networth) {
-    const map = {
-      '₹0 to ₹50 Lakhs': 'D',
-      '₹50 Lakhs to ₹5 Crore': 'C',
-      '₹5 Crore to ₹10 Crore': 'B',
-      'Above ₹10 Crore': 'A'
-    };
-    return map[networth] || 'D';
-  }
-
-  function calculateGrade(income, networth) {
-    const incomeGrade = getIncomeGrade(income);
-    const networthGrade = getNetworthGrade(networth);
-
-    if (incomeGrade === 'D' || networthGrade === 'D') return 'D';
-
-    const combo = incomeGrade + networthGrade;
-    if (['AA', 'AB', 'BA'].includes(combo)) return 'A';
-    if (['BB', 'BC', 'CB'].includes(combo)) return 'B';
-    if (['CC', 'CD', 'DC'].includes(combo)) return 'C';
-
-    return 'D';
   }
 
   // ============ SEND DATA ============
@@ -359,14 +299,13 @@
   // ============ SUBMIT FORM ============
   async function submitForm() {
     if (!validateAll()) {
-      showToast('Please fill in all required fields.', 'error');
+      alert('Please fill in all required fields.');
       return;
     }
 
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.textContent = 'Submitting…';
-    showToast('Sending data...', 'info');
 
     const ref = generateRef();
     state.currentRef = ref;
@@ -380,28 +319,22 @@
       const val = state.data[f.id];
       
       if (f.type === 'checkbox') {
-        record[f.id] = Array.isArray(val) ? val : [];
+        record[f.id] = Array.isArray(val) ? val.join(', ') : '';
       } else {
         record[f.id] = val || '';
       }
     });
 
-    const income = state.data.monthlyIncome || '';
-    const networth = state.data.netWorth || '';
-    const grade = calculateGrade(income, networth);
-    record.grade = grade;
-
     console.log('📦 Final record:', record);
 
     try {
       await sendDataToSheet(record);
-      showToast('✅ Data saved successfully!', 'success');
       state.view = 'done';
       render();
       window.scrollTo({top: 0, behavior: 'smooth'});
     } catch (error) {
       console.error('❌ Error:', error);
-      showToast('❌ Error: ' + error.message, 'error');
+      alert('Error submitting form: ' + error.message);
       btn.disabled = false;
       btn.textContent = 'Submit Wealth Assessment';
     }
