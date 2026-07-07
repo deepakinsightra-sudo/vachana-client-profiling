@@ -275,64 +275,52 @@
     return { success: true, message: 'Data sent' };
   }
 
-  async function submitForm(){
-    if(!validateAll()) return;
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.textContent = 'Submitting…';
+ async function submitForm(){
+  if(!validateAll()) return;
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
 
-    const ref = generateRef();
-    function getIncomeGrade(income) {
-    const map = {
-        '₹0 to ₹50,000': 'D',
-        '₹50,000 to ₹1,00,000': 'C',
-        '₹1,00,000 to ₹5,00,000': 'B',
-        '₹5 Lakh & Above': 'A'
-    };
-    return map[income] || 'D';
-}
-function getNetworthGrade(networth) {
-    const map = {
-        '₹0 to ₹50 Lakhs': 'D',
-        '₹50 Lakhs to ₹5 Crore': 'C',
-        '₹5 Crore to ₹10 Crore': 'B',
-        'Above ₹10 Crore': 'A'
-    };
-    return map[networth] || 'D';
-}
-function calculateGrade(income, networth) {
-    const incomeGrade = getIncomeGrade(income);
-    const networthGrade = getNetworthGrade(networth);
+  const ref = generateRef();
+  state.currentRef = ref;
 
-    if (incomeGrade === 'D' || networthGrade === 'D') return 'D';
-
-    const combo = incomeGrade + networthGrade;
-    if (['AA', 'AB', 'BA'].includes(combo)) return 'A';
-    if (['BB', 'BC', 'CB'].includes(combo)) return 'B';
-    if (['CC', 'CD', 'DC'].includes(combo)) return 'C';
-
-    return 'D';
-}
-    state.currentRef = ref;
-
-    const record = { ref: ref };
-    visibleFields().forEach(f => {
-      const val = state.data[f.id];
-      record[f.id] = Array.isArray(val) ? val.join(', ') : (val || '');
-    });
-
-    try{
-      await postToAppsScript(record);
-      state.view = 'done';
-      render();
-      window.scrollTo({top:0, behavior:'smooth'});
-    }catch(e){
-      console.error('Submission failed', e);
-      btn.disabled = false;
-      btn.textContent = 'Submit Wealth Assessment';
-      alert('Something went wrong sending your details. Please check your connection and try again.\n\nError: ' + e.message);
+  const record = { ref: ref };
+  
+  visibleFields().forEach(f => {
+    const val = state.data[f.id];
+    
+    // Handle different field types
+    if (f.type === 'checkbox') {
+      // Checkbox: send as array (will be converted to comma-separated in Apps Script)
+      record[f.id] = Array.isArray(val) ? val : [];
+    } else if (f.type === 'select') {
+      // Select dropdown: send as string
+      record[f.id] = val || '';
+    } else {
+      // Text, textarea, radio, date: send as string
+      record[f.id] = val || '';
     }
+  });
+
+  // Calculate and add grade
+  const grade = calculateGrade(
+    state.data.monthlyIncome || '', 
+    state.data.netWorth || ''
+  );
+  record.grade = grade;
+
+  try{
+    await postToAppsScript(record);
+    state.view = 'done';
+    render();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }catch(e){
+    console.error('Submission failed', e);
+    btn.disabled = false;
+    btn.textContent = 'Submit Wealth Assessment';
+    alert('Something went wrong sending your details. Please check your connection and try again.\n\nError: ' + e.message);
   }
+}
 
   render();
 </script>
