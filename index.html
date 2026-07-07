@@ -94,6 +94,21 @@
     padding:3px 8px; border-radius:10px; display:inline-block;
   }
   .badge.pending{background:#F3E7D6; color:#8A5A22;}
+
+  .toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 6px;
+    color: white;
+    font-weight: 600;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: none;
+  }
+  .toast.success { background: var(--emerald); display: block; }
+  .toast.error { background: var(--danger); display: block; }
 </style>
 </head>
 <body>
@@ -118,7 +133,10 @@
 
 </div>
 
+<div id="toast" class="toast"></div>
+
 <script>
+  // ⚠️ UPDATE THIS URL AFTER DEPLOYING APPS SCRIPT WITH "Anyone" ACCESS ⚠️
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZ2m3_kP_acyefr3iEkNy4kroMBAkgglvR1p6LXsaCjfBfIxkjErRpQYqOKGY2-PSz7Q/exec';
 
   const FIELDS = [
@@ -244,6 +262,13 @@
     return ok;
   }
 
+  function showToast(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type;
+    setTimeout(() => { toast.className = 'toast'; }, 5000);
+  }
+
   function render(){
     const card = document.getElementById('formCard');
 
@@ -301,30 +326,46 @@
     return 'D';
   }
 
-  // ============ SEND DATA - GUARANTEED WORKING ============
-  function sendDataToSheet(record) {
+  // ============ SEND DATA - USING FETCH WITH CORS ============
+  async function sendDataToSheet(record) {
     try {
-      console.log('Sending data:', record);
+      console.log('📤 Sending data to Apps Script:', record);
       
-      // Use synchronous XMLHttpRequest - guaranteed to complete
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', APPS_SCRIPT_URL, false);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(JSON.stringify(record));
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(record)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Response from Apps Script:', result);
       
-      console.log('XHR Status:', xhr.status);
-      console.log('XHR Response:', xhr.responseText);
-      return true;
-    } catch(e) {
-      console.error('XHR Error:', e);
+      if (result.success) {
+        showToast('✅ Data saved successfully!', 'success');
+        return true;
+      } else {
+        showToast('❌ ' + (result.message || 'Error saving data'), 'error');
+        return false;
+      }
+    } catch(error) {
+      console.error('❌ Error sending data:', error);
+      showToast('❌ Error: ' + error.message, 'error');
       return false;
     }
   }
 
   // ============ SUBMIT FORM ============
-  function submitForm() {
+  async function submitForm() {
     // Validate all fields
     if (!validateAll()) {
+      showToast('Please fill in all required fields.', 'error');
       return;
     }
 
@@ -358,21 +399,21 @@
     );
     record.grade = grade;
 
-    console.log('Final record:', record);
+    console.log('📦 Final record:', record);
 
-    // Send data (synchronous - guaranteed to complete)
-    sendDataToSheet(record);
+    // Send data
+    const success = await sendDataToSheet(record);
 
-    // Always show success screen
-    state.view = 'done';
-    render();
-    window.scrollTo({top: 0, behavior: 'smooth'});
-    
-    // Re-enable button in case of any issues
-    setTimeout(() => {
+    if (success) {
+      // Show success screen
+      state.view = 'done';
+      render();
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    } else {
+      // Re-enable button
       btn.disabled = false;
       btn.textContent = 'Submit Wealth Assessment';
-    }, 1000);
+    }
   }
 
   // Initialize
