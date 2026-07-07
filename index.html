@@ -343,6 +343,121 @@
   // Initialize
   state.view = 'form';
   render();
+  // ============ ADMIN FUNCTIONS ============
+
+function toggleAdmin() {
+  const panel = document.getElementById('adminPanel');
+  if (panel) {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+async function updateLeadStatus() {
+  const leadID = document.getElementById('searchLead').value.trim();
+  const newStatus = document.getElementById('newStatus').value;
+  const resultDiv = document.getElementById('adminResult');
+  
+  if (!leadID) {
+    resultDiv.innerHTML = '❌ Please enter a Lead ID';
+    resultDiv.style.color = '#9E4B3E';
+    return;
+  }
+  
+  try {
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action: 'updateStatus',
+        leadID: leadID,
+        status: newStatus 
+      })
+    });
+    
+    const result = await response.json();
+    resultDiv.innerHTML = result.success ? '✅ ' + result.message : '❌ ' + result.message;
+    resultDiv.style.color = result.success ? '#1F4B3F' : '#9E4B3E';
+    
+  } catch(e) {
+    resultDiv.innerHTML = '❌ Error: ' + e.message;
+    resultDiv.style.color = '#9E4B3E';
+  }
+}
+
+async function viewLead() {
+  const leadID = document.getElementById('searchLead').value.trim();
+  const resultDiv = document.getElementById('adminResult');
+  
+  if (!leadID) {
+    resultDiv.innerHTML = '❌ Please enter a Lead ID';
+    resultDiv.style.color = '#9E4B3E';
+    return;
+  }
+  
+  try {
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action: 'getLeadById',
+        leadID: leadID
+      })
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+      resultDiv.innerHTML = '📋 Lead found: <pre style="background:#f5f5f5;padding:10px;border-radius:4px;overflow:auto;">' + JSON.stringify(result.lead, null, 2) + '</pre>';
+      resultDiv.style.color = '#1F4B3F';
+    } else {
+      resultDiv.innerHTML = '❌ ' + result.message;
+      resultDiv.style.color = '#9E4B3E';
+    }
+  } catch(e) {
+    resultDiv.innerHTML = '❌ Error: ' + e.message;
+    resultDiv.style.color = '#9E4B3E';
+  }
+}
+
+async function getAllLeads() {
+  const listDiv = document.getElementById('allLeadsList');
+  
+  try {
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'getAllLeads' })
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+      let html = '<table style="width:100%; border-collapse:collapse; font-size:12px;">';
+      html += '<tr style="background:#e6e6e6;">';
+      html += '<th style="padding:5px; border:1px solid #ddd; text-align:left;">Lead ID</th>';
+      html += '<th style="padding:5px; border:1px solid #ddd; text-align:left;">Name</th>';
+      html += '<th style="padding:5px; border:1px solid #ddd; text-align:left;">Phone</th>';
+      html += '<th style="padding:5px; border:1px solid #ddd; text-align:left;">Status</th>';
+      html += '<th style="padding:5px; border:1px solid #ddd; text-align:left;">Grade</th>';
+      html += '</tr>';
+      
+      result.leads.forEach(lead => {
+        html += '<tr>';
+        html += '<td style="padding:5px; border:1px solid #ddd;">' + (lead['Lead ID'] || '') + '</td>';
+        html += '<td style="padding:5px; border:1px solid #ddd;">' + (lead['Your Name'] || '') + '</td>';
+        html += '<td style="padding:5px; border:1px solid #ddd;">' + (lead['Phone Number'] || '') + '</td>';
+        html += '<td style="padding:5px; border:1px solid #ddd;">' + (lead['Status'] || '') + '</td>';
+        html += '<td style="padding:5px; border:1px solid #ddd;">' + (lead['Grade'] || '') + '</td>';
+        html += '</tr>';
+      });
+      
+      html += '</table>';
+      listDiv.innerHTML = html;
+    } else {
+      listDiv.innerHTML = '❌ ' + result.message;
+    }
+  } catch(e) {
+    listDiv.innerHTML = '❌ Error: ' + e.message;
+  }
+}
 </script>
 </body>
 </html>
