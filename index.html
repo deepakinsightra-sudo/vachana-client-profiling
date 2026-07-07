@@ -138,10 +138,10 @@
 <div id="toast" class="toast"></div>
 
 <script>
-  // ⚠️ UPDATE THIS URL WITH YOUR DEPLOYED APPS SCRIPT URL ⚠️
+  // ⚠️ UPDATE THIS URL - MUST MATCH YOUR DEPLOYED APPS SCRIPT ⚠️
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZ2m3_kP_acyefr3iEkNy4kroMBAkgglvR1p6LXsaCjfBfIxkjErRpQYqOKGY2-PSz7Q/exec';
 
-  // ============ FIELDS DEFINITION ============
+  // ============ FIELDS - MATCHES APPS SCRIPT EXACTLY ============
   const FIELDS = [
     {id:'name', type:'text', q:'Your Name', required:true},
     {id:'phone', type:'tel', q:'Phone Number', required:true},
@@ -154,8 +154,8 @@
     {id:'dob', type:'date', q:'Date of Birth', required:true},
     {id:'monthlyIncome', type:'radio', q:'What is your monthly income?', required:true,
       options:['₹0 to ₹50,000','₹50,000 to ₹1,00,000','₹1,00,000 to ₹5,00,000','₹5 Lakh & Above']},
-{id:'netWorth', type:'radio', q:'What is your net worth as on today? (Market value of all assets − liabilities)', required:true,
-  options:['₹0 to ₹50 Lakhs','₹50 Lakhs to ₹5 Crore','₹5 Crore to ₹10 Crore','Above ₹10 Crore']},
+    {id:'netWorth', type:'radio', q:'What is your net worth as on today? (Market value of all assets − liabilities)', required:true,
+      options:['₹0 to ₹50 Lakhs','₹50 Lakhs to ₹5 Crore','₹5 Crore to ₹10 Crore','Above ₹10 Crore']},
     {id:'experience', type:'radio', q:'How many years of experience do you have in the stock market?', required:true,
       options:['0 to 3 Years','3 to 5 Years','5 to 10 Years','Above 10 Years']},
     {id:'tradeOrInvest', type:'radio', q:'Do you want to', required:true,
@@ -299,20 +299,20 @@
   // ============ GRADING FUNCTIONS ============
   function getIncomeGrade(income) {
     const map = {
-        '₹0 to ₹50,000': 'D',
-        '₹50,000 to ₹1,00,000': 'C',
-        '₹1,00,000 to ₹5,00,000': 'B',
-        '₹5 Lakh & Above': 'A'
+      '₹0 to ₹50,000': 'D',
+      '₹50,000 to ₹1,00,000': 'C',
+      '₹1,00,000 to ₹5,00,000': 'B',
+      '₹5 Lakh & Above': 'A'
     };
     return map[income] || 'D';
   }
 
   function getNetworthGrade(networth) {
     const map = {
-        '₹0 to ₹50 Lakhs': 'D',
-        '₹50 Lakhs to ₹5 Crore': 'C',
-        '₹5 Crore to ₹10 Crore': 'B',
-        'Above ₹10 Crore': 'A'
+      '₹0 to ₹50 Lakhs': 'D',
+      '₹50 Lakhs to ₹5 Crore': 'C',
+      '₹5 Crore to ₹10 Crore': 'B',
+      'Above ₹10 Crore': 'A'
     };
     return map[networth] || 'D';
   }
@@ -331,130 +331,89 @@
     return 'D';
   }
 
-  // ============ SEND DATA TO APPS SCRIPT ============
+  // ============ SEND DATA ============
   async function sendDataToSheet(record) {
-    const methods = [
-      async () => {
-        console.log('📤 Method 1: Trying fetch with CORS...');
-        const response = await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(record)
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
-      },
-      async () => {
-        console.log('📤 Method 2: Trying fetch with no-cors...');
-        await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(record)
-        });
-        return { success: true, message: 'Sent (no-cors)' };
-      },
-      async () => {
-        console.log('📤 Method 3: Trying XMLHttpRequest...');
-        return new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('POST', APPS_SCRIPT_URL, true);
-          xhr.setRequestHeader('Content-Type', 'application/json');
-          xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try { resolve(JSON.parse(xhr.responseText)); } 
-              catch(e) { resolve({ success: true }); }
-            } else {
-              reject(new Error(`XHR ${xhr.status}`));
-            }
-          };
-          xhr.onerror = function() { reject(new Error('XHR failed')); };
-          xhr.send(JSON.stringify(record));
-        });
-      },
-      async () => {
-        console.log('📤 Method 4: Trying sendBeacon...');
-        const blob = new Blob([JSON.stringify(record)], { type: 'application/json' });
-        const sent = navigator.sendBeacon(APPS_SCRIPT_URL, blob);
-        if (sent) return { success: true, message: 'Sent (beacon)' };
-        throw new Error('sendBeacon failed');
-      }
-    ];
+    try {
+      console.log('📤 Sending:', JSON.stringify(record, null, 2));
+      
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      });
 
-    for (let i = 0; i < methods.length; i++) {
-      try {
-        const result = await methods[i]();
-        console.log(`✅ Method ${i + 1} succeeded:`, result);
-        return result;
-      } catch (error) {
-        console.log(`❌ Method ${i + 1} failed:`, error.message);
-        if (i === methods.length - 1) throw error;
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const result = await response.json();
+      console.log('✅ Response:', result);
+      return result;
+    } catch (error) {
+      console.log('❌ CORS failed, trying no-cors...');
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      });
+      return { success: true };
     }
   }
 
-// ============ SUBMIT FORM ============
-async function submitForm() {
-  if (!validateAll()) {
-    showToast('Please fill in all required fields.', 'error');
-    return;
-  }
-
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.textContent = 'Submitting…';
-  showToast('Sending data...', 'info');
-
-  const ref = generateRef();
-  state.currentRef = ref;
-
-  // Build record - capture ALL fields
-  const record = { ref: ref };
-
-  FIELDS.forEach(f => {
-    const isVisible = !f.showIf || state.data[f.showIf.field] === f.showIf.equals;
-    if (!isVisible) return;
-
-    const val = state.data[f.id];
-    
-    // Handle all field types
-    if (f.type === 'checkbox') {
-      record[f.id] = Array.isArray(val) ? val : [];
-    } else {
-      record[f.id] = val || '';
+  // ============ SUBMIT FORM ============
+  async function submitForm() {
+    if (!validateAll()) {
+      showToast('Please fill in all required fields.', 'error');
+      return;
     }
-  });
 
-  // ============================================
-  // CRITICAL: Make sure net worth is captured
-  // ============================================
-  const income = state.data.monthlyIncome || '';
-  const networth = state.data.netWorth || '';
-  
-  // Calculate grade
-  const grade = calculateGrade(income, networth);
-  record.grade = grade;
-  
-  // Explicitly ensure net worth is in the record
-  record.netWorth = networth;
-  record.monthlyIncome = income;
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+    showToast('Sending data...', 'info');
 
-  console.log('📦 Final record:', JSON.stringify(record, null, 2));
+    const ref = generateRef();
+    state.currentRef = ref;
 
-  try {
-    await sendDataToSheet(record);
-    showToast('✅ Data saved successfully!', 'success');
-    state.view = 'done';
-    render();
-    window.scrollTo({top: 0, behavior: 'smooth'});
-  } catch(error) {
-    console.error('❌ Error:', error);
-    showToast('❌ Error: ' + error.message, 'error');
-    btn.disabled = false;
-    btn.textContent = 'Submit Wealth Assessment';
+    // ============================================
+    // BUILD RECORD - MATCHES TEST DATA STRUCTURE
+    // ============================================
+    const record = { ref: ref };
+
+    // Loop through ALL fields and capture data
+    FIELDS.forEach(f => {
+      const isVisible = !f.showIf || state.data[f.showIf.field] === f.showIf.equals;
+      if (!isVisible) return;
+
+      const val = state.data[f.id];
+      
+      if (f.type === 'checkbox') {
+        record[f.id] = Array.isArray(val) ? val : [];
+      } else {
+        record[f.id] = val || '';
+      }
+    });
+
+    // Calculate and add grade
+    const income = state.data.monthlyIncome || '';
+    const networth = state.data.netWorth || '';
+    const grade = calculateGrade(income, networth);
+    record.grade = grade;
+
+    console.log('📦 Final record:', JSON.stringify(record, null, 2));
+
+    try {
+      await sendDataToSheet(record);
+      showToast('✅ Data saved successfully!', 'success');
+      state.view = 'done';
+      render();
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    } catch (error) {
+      console.error('❌ Error:', error);
+      showToast('❌ Error: ' + error.message, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Submit Wealth Assessment';
+    }
   }
-}
 
   // ============ INITIALIZE ============
   state.view = 'form';
