@@ -138,10 +138,10 @@
 <div id="toast" class="toast"></div>
 
 <script>
-  // ⚠️ UPDATE THIS URL - MUST MATCH YOUR DEPLOYED APPS SCRIPT ⚠️
+  // ⚠️ UPDATE THIS URL AFTER DEPLOYING APPS SCRIPT ⚠️
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZ2m3_kP_acyefr3iEkNy4kroMBAkgglvR1p6LXsaCjfBfIxkjErRpQYqOKGY2-PSz7Q/exec';
 
-  // ============ FIELDS - MATCHES APPS SCRIPT EXACTLY ============
+  // ============ FIELDS ============
   const FIELDS = [
     {id:'name', type:'text', q:'Your Name', required:true},
     {id:'phone', type:'tel', q:'Phone Number', required:true},
@@ -180,10 +180,8 @@
       options:['Bhargav','Shalom','Deepak']},
   ];
 
-  // ============ STATE ============
   const state = { view:'form', data:{}, currentRef:null };
 
-  // ============ HELPER FUNCTIONS ============
   function fieldDef(id){ return FIELDS.find(f => f.id === id); }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -334,7 +332,7 @@
   // ============ SEND DATA ============
   async function sendDataToSheet(record) {
     try {
-      console.log('📤 Sending:', JSON.stringify(record, null, 2));
+      console.log('📤 Sending:', record);
       
       const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
@@ -374,12 +372,8 @@
     const ref = generateRef();
     state.currentRef = ref;
 
-    // ============================================
-    // BUILD RECORD - MATCHES TEST DATA STRUCTURE
-    // ============================================
     const record = { ref: ref };
 
-    // Loop through ALL fields and capture data
     FIELDS.forEach(f => {
       const isVisible = !f.showIf || state.data[f.showIf.field] === f.showIf.equals;
       if (!isVisible) return;
@@ -393,13 +387,12 @@
       }
     });
 
-    // Calculate and add grade
     const income = state.data.monthlyIncome || '';
     const networth = state.data.netWorth || '';
     const grade = calculateGrade(income, networth);
     record.grade = grade;
 
-    console.log('📦 Final record:', JSON.stringify(record, null, 2));
+    console.log('📦 Final record:', record);
 
     try {
       await sendDataToSheet(record);
@@ -415,7 +408,7 @@
     }
   }
 
-  // ============ INITIALIZE ============
+  // Initialize
   state.view = 'form';
   render();
 </script>
