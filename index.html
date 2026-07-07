@@ -396,7 +396,6 @@
 
 // ============ SUBMIT FORM ============
 async function submitForm() {
-  // Validate all fields
   if (!validateAll()) {
     showToast('Please fill in all required fields.', 'error');
     return;
@@ -407,39 +406,41 @@ async function submitForm() {
   btn.textContent = 'Submitting…';
   showToast('Sending data...', 'info');
 
-  // Generate reference
   const ref = generateRef();
   state.currentRef = ref;
 
   // Build record - capture ALL fields
   const record = { ref: ref };
 
-  // Loop through ALL fields to ensure nothing is missed
   FIELDS.forEach(f => {
-    // Check if field is visible
     const isVisible = !f.showIf || state.data[f.showIf.field] === f.showIf.equals;
     if (!isVisible) return;
 
     const val = state.data[f.id];
-
-    // Handle different field types
+    
+    // Handle all field types
     if (f.type === 'checkbox') {
-      // Checkbox: send array, Apps Script will convert to string
       record[f.id] = Array.isArray(val) ? val : [];
     } else {
-      // All other fields: send as string
       record[f.id] = val || '';
     }
   });
 
-  // Calculate and add grade
-  const grade = calculateGrade(
-    state.data.monthlyIncome || '',
-    state.data.netWorth || ''
-  );
+  // ============================================
+  // CRITICAL: Make sure net worth is captured
+  // ============================================
+  const income = state.data.monthlyIncome || '';
+  const networth = state.data.netWorth || '';
+  
+  // Calculate grade
+  const grade = calculateGrade(income, networth);
   record.grade = grade;
+  
+  // Explicitly ensure net worth is in the record
+  record.netWorth = networth;
+  record.monthlyIncome = income;
 
-  console.log('📦 Final record:', record);
+  console.log('📦 Final record:', JSON.stringify(record, null, 2));
 
   try {
     await sendDataToSheet(record);
