@@ -170,7 +170,7 @@
   // ⚠️ UPDATE THIS URL AFTER DEPLOYING APPS SCRIPT ⚠️
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzZDbgD1EHQExmV2-COAvCUWu5z-pl3GsUWapkdIFLXtkQ1KvKm2P8mKJaDNXzBh0QaIw/exec';
 
-  // ============ ALL FIELDS (Single Section) ============
+  // ============ ALL FIELDS ============
   const FIELDS = [
     {id:'name', type:'text', q:'Your Name', required:true},
     {id:'phone', type:'tel', q:'Phone Number', required:true},
@@ -269,11 +269,19 @@
     `;
   }
 
+  // ============ FIXED: No unnecessary re-rendering ============
   function onInput(id, value){
     state.data[id] = value;
     const fEl = document.getElementById('field_'+id);
     if(fEl) fEl.classList.remove('invalid');
-    render();
+    
+    // Only re-render if this field affects conditional visibility (like "demat" showing "broker")
+    const hasConditional = FIELDS.some(f => f.showIf && f.showIf.field === id);
+    if (hasConditional) {
+      const scrollY = window.scrollY;
+      render();
+      window.scrollTo(0, scrollY);
+    }
   }
 
   function onCheckbox(id, option, checked){
@@ -283,7 +291,7 @@
     state.data[id] = arr;
     const fEl = document.getElementById('field_'+id);
     if(fEl) fEl.classList.remove('invalid');
-    render();
+    // Checkboxes don't affect visibility, so no re-render needed
   }
 
   function validateAll(){
@@ -400,7 +408,7 @@
       `;
     }
 
-    // --- STATUS VIEW (After submission) ---
+    // --- STATUS VIEW ---
     else if (state.view === 'status') {
       const statusClass = state.status === 'Approved' ? 'approved' : state.status === 'Rejected' ? 'rejected' : 'pending';
       const statusIcon = state.status === 'Approved' ? '✅' : state.status === 'Rejected' ? '❌' : '⏳';
@@ -437,7 +445,7 @@
       `;
     }
 
-    // --- DONE VIEW (After full submission) ---
+    // --- DONE VIEW ---
     else if (state.view === 'done') {
       const grade = calculateGrade(state.data.monthlyIncome || '', state.data.netWorth || '');
       card.innerHTML = `
@@ -512,7 +520,6 @@
       const result = await checkStatus(query);
 
       if (result.success) {
-        // Store the lead data
         Object.keys(result.data || {}).forEach(key => {
           state.data[key] = result.data[key];
         });
