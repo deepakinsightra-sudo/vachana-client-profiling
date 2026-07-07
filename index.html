@@ -6,6 +6,19 @@
 <title>Vachana Investments — Wealth Assessment</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+.grid-2 .field.wide {
+    grid-column: 1 / -1;
+}
+@media (max-width:700px) {
+    .grid-2 {
+      grid-template-columns: 1fr;
+    }
+}
 <style>
   :root{
     --ink:#0B1F3A;
@@ -127,8 +140,8 @@
     {id:'name', type:'text', q:'Your Name', required:true},
     {id:'phone', type:'tel', q:'Phone Number', required:true},
     {id:'email', type:'email', q:'Email Address', required:true},
-    {id:'place', type:'textarea', q:'Place', required:true},
-    {id:'occupation', type:'textarea', q:'What is your occupation? Explain in detail', required:true},
+    {id:'place', type:'textarea', q:'Place', required:true, wide:true},
+{id:'occupation', type:'textarea', q:'What is your occupation? Explain in detail', required:true, wide:true},
     {id:'demat', type:'radio', q:'Do you have a Demat & Trading account?', required:true, options:['Yes','No']},
     {id:'broker', type:'text', q:'If Yes, name of your primary stock broker?', required:false, showIf:{field:'demat', equals:'Yes'}},
 
@@ -142,20 +155,21 @@
     {id:'tradeOrInvest', type:'radio', q:'Do you want to', required:true,
       options:['Trade','Invest','Both Trade and Invest']},
     {id:'segments', type:'checkbox', q:'Which segments do you want to focus on?',
-      hint:'Futures and options involve high risk — opt in only if you are a high risk taker.', required:true,
-      options:['Equities','Futures','Option Buyer','Option Seller','Mutual Funds','Insurance','Courses','Others']},
+  hint:'Futures and options involve high risk — opt in only if you are a high risk taker.', required:true, wide:true,
+  options:['Equities','Futures','Option Buyer','Option Seller','Mutual Funds','Insurance','Courses','Others']},
     {id:'riskTolerance', type:'radio', q:'What is your Risk Tolerance and Return Expectation (per annum)?', required:true,
       options:['Low (loss of 20%)','Medium (20–40%)','High (above 40%)']},
     {id:'timeframe', type:'checkbox', q:'Timeframe of Trading/Investment',
-      hint:'Choose the options that best match your investment preferences.', required:true,
-      options:['Intraday (High Risk)','Short Term (Upto 1 Year)','Medium Term (1 Year to 5 Year)','Long Term (More than 5 Year)']},
-    {id:'researchType', type:'checkbox', q:'What type of Research calls do you prefer?', required:true,
-      options:['Equity Delivery','Futures and Options','Intraday','Long Term Investment']},
-    {id:'shortTermGoals', type:'textarea', q:'What are your short term (within the next one year) financial goals?', required:true},
-    {id:'mediumTermGoals', type:'textarea', q:'What are your medium term (between 1 year and 5 years) financial goals?', required:true},
-    {id:'longTermGoals', type:'textarea', q:'What are your long term (above 5 years) financial goals?', required:true},
-    {id:'orderPreference', type:'checkbox', q:'How do you prefer to place orders?', required:true,
-      options:['Mobile App','Exe Software on Desktop or Laptop','Web Application','Through Dealer (Call and Trade)']},
+  hint:'Choose the options that best match your investment preferences.', required:true, wide:true,
+  options:['Intraday (High Risk)','Short Term (Upto 1 Year)','Medium Term (1 Year to 5 Year)','Long Term (More than 5 Year)']},
+    {id:'researchType', type:'checkbox', q:'What type of Research calls do you prefer?', required:true, wide:true,
+  options:['Equity Delivery','Futures and Options','Intraday','Long Term Investment']},
+    {id:'shortTermGoals', type:'textarea', q:'What are your short term (within the next one year) financial goals?', required:true, wide:true},
+{id:'mediumTermGoals', type:'textarea', q:'What are your medium term (between 1 year and 5 years) financial goals?', required:true, wide:true},
+{id:'longTermGoals', type:'textarea', q:'What are your long term (above 5 years) financial goals?', required:true, wide:true},
+    {id:'orderPreference', type:'checkbox', q:'How do you prefer to place orders?', required:true, wide:true,
+  options:['Mobile App','Exe Software on Desktop or Laptop','Web Application','Through Dealer (Call and Trade)']},
+{id:'servicesExpected', type:'textarea', q:'What services do you expect from us, and how can we serve you better?', required:true, wide:true},
     {id:'servicesExpected', type:'textarea', q:'What services do you expect from us, and how can we serve you better?', required:true},
     {id:'contactPerson', type:'select', q:'Contact person at Vachana Investments', required:true,
       options:['Bhargav','Shalom','Deepak']},
@@ -181,6 +195,7 @@
 
   function renderField(f){
     const invalidClass = f._invalid ? 'invalid' : '';
+    const wideClass = f.wide ? 'wide' : '';
     let inner = '';
     if(f.type === 'text' || f.type === 'tel' || f.type === 'email' || f.type === 'date'){
       inner = `<input type="${f.type}" id="input_${f.id}" value="${(state.data[f.id]||'').replace(/"/g,'&quot;')}" oninput="onInput('${f.id}', this.value)">`;
@@ -206,7 +221,7 @@
       </select>`;
     }
     return `
-      <div class="field ${invalidClass}" id="field_${f.id}">
+      <div class="field ${invalidClass} ${wideClass}" id="field_${f.id}">
         <label class="q">${f.q}${f.required ? '<span class="req">*</span>' : ''}</label>
         ${f.hint ? `<p class="hint">${f.hint}</p>` : ''}
         ${inner}
