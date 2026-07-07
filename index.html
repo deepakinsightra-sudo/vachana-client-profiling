@@ -138,9 +138,10 @@
 <div id="toast" class="toast"></div>
 
 <script>
-  // ⚠️ UPDATE THIS URL - MUST BE THE DEPLOYED APPS SCRIPT URL ⚠️
+  // ⚠️ UPDATE THIS URL WITH YOUR DEPLOYED APPS SCRIPT URL ⚠️
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZ2m3_kP_acyefr3iEkNy4kroMBAkgglvR1p6LXsaCjfBfIxkjErRpQYqOKGY2-PSz7Q/exec';
 
+  // ============ FIELDS DEFINITION ============
   const FIELDS = [
     {id:'name', type:'text', q:'Your Name', required:true},
     {id:'phone', type:'tel', q:'Phone Number', required:true},
@@ -179,8 +180,10 @@
       options:['Bhargav','Shalom','Deepak']},
   ];
 
+  // ============ STATE ============
   const state = { view:'form', data:{}, currentRef:null };
 
+  // ============ HELPER FUNCTIONS ============
   function fieldDef(id){ return FIELDS.find(f => f.id === id); }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -328,10 +331,9 @@
     return 'D';
   }
 
-  /  // ============ SEND DATA - MULTIPLE METHODS ============
+  // ============ SEND DATA TO APPS SCRIPT ============
   async function sendDataToSheet(record) {
     const methods = [
-      // Method 1: Fetch with CORS
       async () => {
         console.log('📤 Method 1: Trying fetch with CORS...');
         const response = await fetch(APPS_SCRIPT_URL, {
@@ -343,8 +345,6 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return await response.json();
       },
-      
-      // Method 2: Fetch with no-cors
       async () => {
         console.log('📤 Method 2: Trying fetch with no-cors...');
         await fetch(APPS_SCRIPT_URL, {
@@ -355,8 +355,6 @@
         });
         return { success: true, message: 'Sent (no-cors)' };
       },
-      
-      // Method 3: XMLHttpRequest
       async () => {
         console.log('📤 Method 3: Trying XMLHttpRequest...');
         return new Promise((resolve, reject) => {
@@ -375,8 +373,6 @@
           xhr.send(JSON.stringify(record));
         });
       },
-      
-      // Method 4: sendBeacon
       async () => {
         console.log('📤 Method 4: Trying sendBeacon...');
         const blob = new Blob([JSON.stringify(record)], { type: 'application/json' });
@@ -386,7 +382,6 @@
       }
     ];
 
-    // Try each method until one succeeds
     for (let i = 0; i < methods.length; i++) {
       try {
         const result = await methods[i]();
@@ -400,82 +395,77 @@
   }
 
   // ============ SUBMIT FORM ============
-async function submitForm() {
-  // Validate all fields
-  if (!validateAll()) {
-    showToast('Please fill in all required fields.', 'error');
-    return;
-  }
-
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.textContent = 'Submitting…';
-  showToast('Sending data...', 'info');
-
-  // Generate reference
-  const ref = generateRef();
-  state.currentRef = ref;
-
-  // --- THIS IS THE IMPORTANT PART ---
-  // Build record by iterating over all fields in the FIELDS array
-  const record = { ref: ref };
-
-  // Use the master FIELDS array, not visibleFields(), to ensure we don't miss any
-  FIELDS.forEach(f => {
-    // Check if the field is visible (respects showIf condition)
-    const isVisible = !f.showIf || state.data[f.showIf.field] === f.showIf.equals;
-    if (!isVisible) return;
-
-    const val = state.data[f.id];
-
-    // Handle different field types
-    if (f.type === 'checkbox') {
-      // Checkbox: send the array of selected options
-      // The Apps Script will convert it to a comma-separated string
-      record[f.id] = Array.isArray(val) ? val : [];
-    } else if (f.type === 'select') {
-      // Select dropdown: send the selected value as a string
-      record[f.id] = val || '';
-    } else {
-      // Text, textarea, radio, date: send as string
-      record[f.id] = val || '';
+  async function submitForm() {
+    // Validate all fields
+    if (!validateAll()) {
+      showToast('Please fill in all required fields.', 'error');
+      return;
     }
-  });
 
-  // Calculate and add grade
-  const grade = calculateGrade(
-    state.data.monthlyIncome || '',
-    state.data.netWorth || ''
-  );
-  record.grade = grade;
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+    showToast('Sending data...', 'info');
 
-  console.log('📦 Final record sent to Apps Script:', record);
+    // Generate reference
+    const ref = generateRef();
+    state.currentRef = ref;
 
-  // --- END OF IMPORTANT PART ---
+    // Build record by iterating over all fields in the FIELDS array
+    const record = { ref: ref };
 
-  try {
-    // Send data using your existing function
-    const result = await sendDataToSheet(record);
-    console.log('✅ Success! Result:', result);
-    
-    showToast('✅ Data saved successfully!', 'success');
-    
-    // Show success screen
-    state.view = 'done';
-    render();
-    window.scrollTo({top: 0, behavior: 'smooth'});
-    
-  } catch(error) {
-    console.error('❌ All methods failed:', error);
-    showToast('❌ Error: ' + error.message, 'error');
-    
-    // Re-enable button
-    btn.disabled = false;
-    btn.textContent = 'Submit Wealth Assessment';
+    FIELDS.forEach(f => {
+      // Check if the field is visible (respects showIf condition)
+      const isVisible = !f.showIf || state.data[f.showIf.field] === f.showIf.equals;
+      if (!isVisible) return;
+
+      const val = state.data[f.id];
+
+      // Handle different field types
+      if (f.type === 'checkbox') {
+        // Checkbox: send the array of selected options
+        record[f.id] = Array.isArray(val) ? val : [];
+      } else if (f.type === 'select') {
+        // Select dropdown: send the selected value as a string
+        record[f.id] = val || '';
+      } else {
+        // Text, textarea, radio, date: send as string
+        record[f.id] = val || '';
+      }
+    });
+
+    // Calculate and add grade
+    const grade = calculateGrade(
+      state.data.monthlyIncome || '',
+      state.data.netWorth || ''
+    );
+    record.grade = grade;
+
+    console.log('📦 Final record sent to Apps Script:', record);
+
+    try {
+      // Send data using your existing function
+      const result = await sendDataToSheet(record);
+      console.log('✅ Success! Result:', result);
+      
+      showToast('✅ Data saved successfully!', 'success');
+      
+      // Show success screen
+      state.view = 'done';
+      render();
+      window.scrollTo({top: 0, behavior: 'smooth'});
+      
+    } catch(error) {
+      console.error('❌ All methods failed:', error);
+      showToast('❌ Error: ' + error.message, 'error');
+      
+      // Re-enable button
+      btn.disabled = false;
+      btn.textContent = 'Submit Wealth Assessment';
+    }
   }
-}
 
-  // Initialize
+  // ============ INITIALIZE ============
   state.view = 'form';
   render();
 </script>
