@@ -328,7 +328,7 @@
     return 'D';
   }
 
-  // ============ FALLBACK: TRY MULTIPLE METHODS ============
+  /  // ============ SEND DATA - MULTIPLE METHODS ============
   async function sendDataToSheet(record) {
     const methods = [
       // Method 1: Fetch with CORS
@@ -394,15 +394,12 @@
         return result;
       } catch (error) {
         console.log(`❌ Method ${i + 1} failed:`, error.message);
-        // If this is the last method, throw the error
         if (i === methods.length - 1) throw error;
-        // Otherwise continue to next method
       }
     }
   }
 
   // ============ SUBMIT FORM ============
-    // ============ SUBMIT FORM ============
   async function submitForm() {
     // Validate all fields
     if (!validateAll()) {
