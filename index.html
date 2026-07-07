@@ -268,28 +268,17 @@
 async function postToAppsScript(record){
   try {
     console.log('Sending data:', record);
-    
-    // Method 1: Use sendBeacon (bypasses CORS, doesn't need response)
-    const blob = new Blob([JSON.stringify(record)], { type: 'application/json' });
-    const sent = navigator.sendBeacon(APPS_SCRIPT_URL, blob);
-    
-    if (sent) {
-      console.log('Data sent successfully using sendBeacon');
-      return { success: true };
-    }
-    
-    // Method 2: Fallback to fetch with no-cors
-    console.log('sendBeacon failed, falling back to fetch with no-cors');
+
     await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(record)
     });
-    
+
     console.log('Data sent successfully using fetch');
     return { success: true };
-    
+
   } catch(error) {
     console.error('Error posting to Apps Script:', error);
     throw error;
