@@ -394,76 +394,66 @@
     }
   }
 
-  // ============ SUBMIT FORM ============
-  async function submitForm() {
-    // Validate all fields
-    if (!validateAll()) {
-      showToast('Please fill in all required fields.', 'error');
-      return;
-    }
-
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.textContent = 'Submitting…';
-    showToast('Sending data...', 'info');
-
-    // Generate reference
-    const ref = generateRef();
-    state.currentRef = ref;
-
-    // Build record by iterating over all fields in the FIELDS array
-    const record = { ref: ref };
-
-    FIELDS.forEach(f => {
-      // Check if the field is visible (respects showIf condition)
-      const isVisible = !f.showIf || state.data[f.showIf.field] === f.showIf.equals;
-      if (!isVisible) return;
-
-      const val = state.data[f.id];
-
-      // Handle different field types
-      if (f.type === 'checkbox') {
-        // Checkbox: send the array of selected options
-        record[f.id] = Array.isArray(val) ? val : [];
-      } else if (f.type === 'select') {
-        // Select dropdown: send the selected value as a string
-        record[f.id] = val || '';
-      } else {
-        // Text, textarea, radio, date: send as string
-        record[f.id] = val || '';
-      }
-    });
-
-    // Calculate and add grade
-    const grade = calculateGrade(
-      state.data.monthlyIncome || '',
-      state.data.netWorth || ''
-    );
-    record.grade = grade;
-
-    console.log('📦 Final record sent to Apps Script:', record);
-
-    try {
-      // Send data using your existing function
-      const result = await sendDataToSheet(record);
-      console.log('✅ Success! Result:', result);
-      
-      showToast('✅ Data saved successfully!', 'success');
-      
-      // Show success screen
-      state.view = 'done';
-      render();
-      window.scrollTo({top: 0, behavior: 'smooth'});
-      
-    } catch(error) {
-      console.error('❌ All methods failed:', error);
-      showToast('❌ Error: ' + error.message, 'error');
-      
-      // Re-enable button
-      btn.disabled = false;
-      btn.textContent = 'Submit Wealth Assessment';
-    }
+// ============ SUBMIT FORM ============
+async function submitForm() {
+  // Validate all fields
+  if (!validateAll()) {
+    showToast('Please fill in all required fields.', 'error');
+    return;
   }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  showToast('Sending data...', 'info');
+
+  // Generate reference
+  const ref = generateRef();
+  state.currentRef = ref;
+
+  // Build record - capture ALL fields
+  const record = { ref: ref };
+
+  // Loop through ALL fields to ensure nothing is missed
+  FIELDS.forEach(f => {
+    // Check if field is visible
+    const isVisible = !f.showIf || state.data[f.showIf.field] === f.showIf.equals;
+    if (!isVisible) return;
+
+    const val = state.data[f.id];
+
+    // Handle different field types
+    if (f.type === 'checkbox') {
+      // Checkbox: send array, Apps Script will convert to string
+      record[f.id] = Array.isArray(val) ? val : [];
+    } else {
+      // All other fields: send as string
+      record[f.id] = val || '';
+    }
+  });
+
+  // Calculate and add grade
+  const grade = calculateGrade(
+    state.data.monthlyIncome || '',
+    state.data.netWorth || ''
+  );
+  record.grade = grade;
+
+  console.log('📦 Final record:', record);
+
+  try {
+    await sendDataToSheet(record);
+    showToast('✅ Data saved successfully!', 'success');
+    state.view = 'done';
+    render();
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  } catch(error) {
+    console.error('❌ Error:', error);
+    showToast('❌ Error: ' + error.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Submit Wealth Assessment';
+  }
+}
 
   // ============ INITIALIZE ============
   state.view = 'form';
